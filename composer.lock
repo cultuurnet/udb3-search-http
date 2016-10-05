@@ -4,8 +4,8 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "hash": "9e1d2080e8e178c9f54909761a15073b",
-    "content-hash": "4985a89a81a43c55b7b03d96e3c68a77",
+    "hash": "cc7a271dbee14909b2187a87661c1b01",
+    "content-hash": "df411ee630790471fbe82428f7e2a322",
     "packages": [
         {
             "name": "2dotstwice/collection",
@@ -640,6 +640,54 @@
             ],
             "description": "PHP library to access CultuurNet's Entry API",
             "time": "2016-01-05 16:01:34"
+        },
+        {
+            "name": "cultuurnet/hydra",
+            "version": "dev-master",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/cultuurnet/Hydra.git",
+                "reference": "e915ca1a69707de8d41b8132363d1c105ccaeb3b"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/cultuurnet/Hydra/zipball/e915ca1a69707de8d41b8132363d1c105ccaeb3b",
+                "reference": "e915ca1a69707de8d41b8132363d1c105ccaeb3b",
+                "shasum": ""
+            },
+            "require-dev": {
+                "phing/phing": "~2.11",
+                "phpunit/phpunit": "~4.7",
+                "satooshi/php-coveralls": "~0.7",
+                "squizlabs/php_codesniffer": "~2.3"
+            },
+            "type": "library",
+            "extra": {
+                "branch-alias": {
+                    "dev-master": "0.x-dev"
+                }
+            },
+            "autoload": {
+                "psr-4": {
+                    "CultuurNet\\Hydra\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "Apache-2.0"
+            ],
+            "authors": [
+                {
+                    "name": "Kristof Coomans",
+                    "email": "kristof@2dotstwice.be"
+                },
+                {
+                    "name": "Bram Cordie",
+                    "email": "bram@2dotstwice.be"
+                }
+            ],
+            "description": "PHP library implementing concepts of http://www.hydra-cg.com/",
+            "time": "2015-08-19 08:05:13"
         },
         {
             "name": "cultuurnet/search",
