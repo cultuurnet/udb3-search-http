@@ -11,6 +11,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use ValueObjects\Number\Natural;
 use ValueObjects\String\String as StringLiteral;
+use ValueObjects\Web\Url;
 
 class OrganizerSearchController
 {
@@ -41,7 +42,7 @@ class OrganizerSearchController
             $limit = 30;
         }
 
-        $pageNumber = floor($start / $limit) + 1;
+        $pageNumber = (int) floor($start / $limit) + 1;
 
         $parameters = (new OrganizerSearchParameters())
             ->withStart(new Natural($start))
@@ -50,6 +51,12 @@ class OrganizerSearchController
         if (!empty($request->query->get('name'))) {
             $parameters = $parameters->withName(
                 new StringLiteral($request->query->get('name'))
+            );
+        }
+
+        if (!empty($request->query->get('website'))) {
+            $parameters = $parameters->withWebsite(
+                Url::fromNative($request->query->get('website'))
             );
         }
 

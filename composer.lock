@@ -1031,12 +1031,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/cultuurnet/udb3-search.git",
-                "reference": "c52a43a3970d6ef1c8ff183a1bffd06bdca70d16"
+                "reference": "81bb6a871888ecdb583fb20d79c53df67cce79b0"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/cultuurnet/udb3-search/zipball/c52a43a3970d6ef1c8ff183a1bffd06bdca70d16",
-                "reference": "c52a43a3970d6ef1c8ff183a1bffd06bdca70d16",
+                "url": "https://api.github.com/repos/cultuurnet/udb3-search/zipball/81bb6a871888ecdb583fb20d79c53df67cce79b0",
+                "reference": "81bb6a871888ecdb583fb20d79c53df67cce79b0",
                 "shasum": ""
             },
             "require": {
@@ -1069,7 +1069,7 @@
                     "email": "bert@2dotstwice.be"
                 }
             ],
-            "time": "2016-09-21 15:41:46"
+            "time": "2016-10-06 09:37:59"
         },
         {
             "name": "cultuurnet/uitid-credentials",
@@ -3544,16 +3544,16 @@
         },
         {
             "name": "twig/twig",
-            "version": "v1.26.0",
+            "version": "v1.26.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/twigphp/Twig.git",
-                "reference": "81c2b5fd36581370c7731387f05dcdb577050513"
+                "reference": "a09d8ee17ac1cfea29ed60c83960ad685c6a898d"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/twigphp/Twig/zipball/81c2b5fd36581370c7731387f05dcdb577050513",
-                "reference": "81c2b5fd36581370c7731387f05dcdb577050513",
+                "url": "https://api.github.com/repos/twigphp/Twig/zipball/a09d8ee17ac1cfea29ed60c83960ad685c6a898d",
+                "reference": "a09d8ee17ac1cfea29ed60c83960ad685c6a898d",
                 "shasum": ""
             },
             "require": {
@@ -3601,7 +3601,7 @@
             "keywords": [
                 "templating"
             ],
-            "time": "2016-10-02 16:19:13"
+            "time": "2016-10-05 18:57:41"
         },
         {
             "name": "willdurand/geocoder",
