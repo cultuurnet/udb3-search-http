@@ -25,7 +25,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->searchService = $this->getMock(OrganizerSearchServiceInterface::class);
+        $this->searchService = $this->createMock(OrganizerSearchServiceInterface::class);
         $this->controller = new OrganizerSearchController($this->searchService);
     }
 
