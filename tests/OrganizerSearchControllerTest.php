@@ -8,7 +8,7 @@ use CultuurNet\UDB3\Search\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Number\Natural;
-use ValueObjects\String\String as StringLiteral;
+use ValueObjects\StringLiteral\StringLiteral;
 use ValueObjects\Web\Url;
 
 class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
