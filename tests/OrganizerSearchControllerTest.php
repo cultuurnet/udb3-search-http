@@ -44,10 +44,10 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
         );
 
         $expectedSearchParameters = (new OrganizerSearchParameters())
-            ->withStart(new Natural(30))
-            ->withLimit(new Natural(10))
             ->withName(new StringLiteral('Foo'))
-            ->withWebsite(Url::fromNative('http://foo.bar'));
+            ->withWebsite(Url::fromNative('http://foo.bar'))
+            ->withStart(new Natural(30))
+            ->withLimit(new Natural(10));
 
         $expectedResultSet = new PagedResultSet(
             new Natural(32),
