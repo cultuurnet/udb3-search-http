@@ -11,11 +11,13 @@ interface PagedCollectionFactoryInterface
      * @param PagedResultSet $pagedResultSet
      * @param int $pageNumber
      * @param int $limit
+     * @param bool $embed
      * @return PagedCollection
      */
     public function fromPagedResultSet(
         PagedResultSet $pagedResultSet,
         $pageNumber,
-        $limit
+        $limit,
+        $embed = false
     );
 }
