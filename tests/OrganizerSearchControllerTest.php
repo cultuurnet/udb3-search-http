@@ -3,8 +3,8 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\ReadModel\JsonDocument;
-use CultuurNet\UDB3\Search\OrganizerSearchParameters;
-use CultuurNet\UDB3\Search\OrganizerSearchServiceInterface;
+use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
+use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Number\Natural;
