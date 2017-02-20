@@ -2,8 +2,6 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use CultuurNet\Hydra\PagedCollection;
-use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -21,12 +19,24 @@ class OrganizerSearchController
     private $searchService;
 
     /**
+     * @var PagedCollectionFactoryInterface
+     */
+    private $pagedCollectionFactory;
+
+    /**
      * @param OrganizerSearchServiceInterface $searchService
+     * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
-        OrganizerSearchServiceInterface $searchService
+        OrganizerSearchServiceInterface $searchService,
+        PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
+        if (is_null($pagedCollectionFactory)) {
+            $pagedCollectionFactory = new PagedCollectionFactory();
+        }
+
         $this->searchService = $searchService;
+        $this->pagedCollectionFactory = $pagedCollectionFactory;
     }
 
     /**
@@ -41,8 +51,6 @@ class OrganizerSearchController
         if ($limit == 0) {
             $limit = 30;
         }
-
-        $pageNumber = (int) floor($start / $limit) + 1;
 
         $parameters = (new OrganizerSearchParameters())
             ->withStart(new Natural($start))
@@ -62,18 +70,10 @@ class OrganizerSearchController
 
         $resultSet = $this->searchService->search($parameters);
 
-        $results = array_map(
-            function (JsonDocument $document) {
-                return $document->getBody();
-            },
-            $resultSet->getResults()
-        );
-
-        $pagedCollection = new PagedCollection(
-            $pageNumber,
-            $limit,
-            $results,
-            $resultSet->getTotal()->toNative()
+        $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
+            $resultSet,
+            $start,
+            $limit
         );
 
         return (new JsonResponse($pagedCollection, 200, ['Content-Type' => 'application/ld+json']))
