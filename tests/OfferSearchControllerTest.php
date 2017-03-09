@@ -3,30 +3,48 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\ReadModel\JsonDocument;
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
+use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
+use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
-use ValueObjects\Web\Url;
 
-class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
+class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var OrganizerSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
+     * @var OfferSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
      */
     private $searchService;
 
     /**
-     * @var OrganizerSearchController
+     * @var StringLiteral
+     */
+    private $regionIndexName;
+
+    /**
+     * @var StringLiteral
+     */
+    private $regionDocumentType;
+
+    /**
+     * @var OfferSearchController
      */
     private $controller;
 
     public function setUp()
     {
-        $this->searchService = $this->createMock(OrganizerSearchServiceInterface::class);
-        $this->controller = new OrganizerSearchController($this->searchService);
+        $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
+
+        $this->regionIndexName = new StringLiteral('geoshapes');
+        $this->regionDocumentType = new StringLiteral('region');
+
+        $this->controller = new OfferSearchController(
+            $this->searchService,
+            $this->regionIndexName,
+            $this->regionDocumentType
+        );
     }
 
     /**
@@ -38,14 +56,16 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 30,
                 'limit' => 10,
-                'name' => 'Foo',
-                'website' => 'http://foo.bar',
+                'regionId' => 'gem-leuven',
             ]
         );
 
-        $expectedSearchParameters = (new OrganizerSearchParameters())
-            ->withName(new StringLiteral('Foo'))
-            ->withWebsite(Url::fromNative('http://foo.bar'))
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withRegion(
+                new RegionId('gem-leuven'),
+                $this->regionIndexName,
+                $this->regionDocumentType
+            )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -53,8 +73,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             new Natural(32),
             new Natural(10),
             [
-                new JsonDocument('3f2ba18c-59a9-4f65-a242-462ad467c72b', '{"name": "Foo"}'),
-                new JsonDocument('39d06346-b762-4ccd-8b3a-142a8f6abbbe', '{"name": "Foobar"}'),
+                new JsonDocument('3f2ba18c-59a9-4f65-a242-462ad467c72b', '{"@id": "events/1"}'),
+                new JsonDocument('39d06346-b762-4ccd-8b3a-142a8f6abbbe', '{"@id": "places/2"}'),
             ]
         );
 
@@ -70,8 +90,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'itemsPerPage' => 10,
                 'totalItems' => 32,
                 'member' => [
-                    ['name' => 'Foo'],
-                    ['name' => 'Foobar'],
+                    ['@id' => 'events/1'],
+                    ['@id' => 'places/2'],
                 ],
             ]
         );
@@ -94,7 +114,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OrganizerSearchParameters())
+        $expectedSearchParameters = (new OfferSearchParameters())
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30));
 

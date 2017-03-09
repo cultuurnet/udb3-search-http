@@ -2,21 +2,31 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
+use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
-use ValueObjects\Web\Url;
 
-class OrganizerSearchController
+class OfferSearchController
 {
     /**
-     * @var OrganizerSearchServiceInterface
+     * @var OfferSearchServiceInterface
      */
     private $searchService;
+
+    /**
+     * @var StringLiteral
+     */
+    private $regionIndexName;
+
+    /**
+     * @var StringLiteral
+     */
+    private $regionDocumentType;
 
     /**
      * @var PagedCollectionFactoryInterface
@@ -24,11 +34,15 @@ class OrganizerSearchController
     private $pagedCollectionFactory;
 
     /**
-     * @param OrganizerSearchServiceInterface $searchService
+     * @param OfferSearchServiceInterface $searchService
+     * @param StringLiteral $regionIndexName
+     * @param StringLiteral $regionDocumentType
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
-        OrganizerSearchServiceInterface $searchService,
+        OfferSearchServiceInterface $searchService,
+        StringLiteral $regionIndexName,
+        StringLiteral $regionDocumentType,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
@@ -36,6 +50,8 @@ class OrganizerSearchController
         }
 
         $this->searchService = $searchService;
+        $this->regionIndexName = $regionIndexName;
+        $this->regionDocumentType = $regionDocumentType;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
     }
 
@@ -47,24 +63,21 @@ class OrganizerSearchController
     {
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
+        $embed = (bool) $request->query->get('embed', false);
 
         if ($limit == 0) {
             $limit = 30;
         }
 
-        $parameters = (new OrganizerSearchParameters())
+        $parameters = (new OfferSearchParameters())
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
 
-        if (!empty($request->query->get('name'))) {
-            $parameters = $parameters->withName(
-                new StringLiteral($request->query->get('name'))
-            );
-        }
-
-        if (!empty($request->query->get('website'))) {
-            $parameters = $parameters->withWebsite(
-                Url::fromNative($request->query->get('website'))
+        if (!empty($request->query->get('regionId'))) {
+            $parameters = $parameters->withRegion(
+                new RegionId($request->query->get('regionId')),
+                $this->regionIndexName,
+                $this->regionDocumentType
             );
         }
 
@@ -73,7 +86,8 @@ class OrganizerSearchController
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit
+            $limit,
+            $embed
         );
 
         return (new JsonResponse($pagedCollection, 200, ['Content-Type' => 'application/ld+json']))
