@@ -2,8 +2,6 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use CultuurNet\UDB3\Search\JsonDocument\JsonDocumentTransformerInterface;
-use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Region\RegionId;

@@ -10,7 +10,6 @@ use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
-use ValueObjects\Web\Url;
 
 class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
