@@ -4,6 +4,7 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -37,12 +38,14 @@ class OfferSearchController
      * @param OfferSearchServiceInterface $searchService
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
+     * @param QueryStringFactoryInterface $queryStringFactory
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
         OfferSearchServiceInterface $searchService,
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
+        QueryStringFactoryInterface $queryStringFactory,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
@@ -52,6 +55,7 @@ class OfferSearchController
         $this->searchService = $searchService;
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
+        $this->queryStringFactory = $queryStringFactory;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
     }
 
@@ -72,6 +76,14 @@ class OfferSearchController
         $parameters = (new OfferSearchParameters())
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
+
+        if (!empty($request->query->get('q'))) {
+            $parameters = $parameters->withQueryString(
+                $this->queryStringFactory->fromString(
+                    $request->query->get('q')
+                )
+            );
+        }
 
         if (!empty($request->query->get('regionId'))) {
             $parameters = $parameters->withRegion(
