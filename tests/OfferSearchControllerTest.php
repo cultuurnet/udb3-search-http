@@ -29,11 +29,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     private $regionDocumentType;
 
     /**
-     * @var MockQueryStringFactory
-     */
-    private $queryStringFactory;
-
-    /**
      * @var OfferSearchController
      */
     private $controller;
@@ -45,13 +40,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->regionIndexName = new StringLiteral('geoshapes');
         $this->regionDocumentType = new StringLiteral('region');
 
-        $this->queryStringFactory = new MockQueryStringFactory();
-
         $this->controller = new OfferSearchController(
             $this->searchService,
             $this->regionIndexName,
-            $this->regionDocumentType,
-            $this->queryStringFactory
+            $this->regionDocumentType
         );
     }
 
@@ -64,15 +56,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 30,
                 'limit' => 10,
-                'q' => 'dag van de fiets',
                 'regionId' => 'gem-leuven',
             ]
         );
 
         $expectedSearchParameters = (new OfferSearchParameters())
-            ->withQueryString(
-                new MockQueryString('dag van de fiets')
-            )
             ->withRegion(
                 new RegionId('gem-leuven'),
                 $this->regionIndexName,
