@@ -94,17 +94,19 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('labels'))) {
-            $labels = (array) $request->query->get('labels');
+        $labels = $this->getLabelsFromQuery($request, 'labels');
+        if (!empty($labels)) {
+            $parameters = $parameters->withLabels(...$labels);
+        }
 
-            $labelNames = array_map(
-                function ($label) {
-                    return new LabelName($label);
-                },
-                $labels
-            );
+        $locationLabels = $this->getLabelsFromQuery($request, 'locationLabels');
+        if (!empty($locationLabels)) {
+            $parameters = $parameters->withLocationLabels(...$locationLabels);
+        }
 
-            $parameters = $parameters->withLabels(...$labelNames);
+        $organizerLabels = $this->getLabelsFromQuery($request, 'organizerLabels');
+        if (!empty($organizerLabels)) {
+            $parameters = $parameters->withOrganizerLabels(...$organizerLabels);
         }
 
         $resultSet = $this->searchService->search($parameters);
@@ -120,5 +122,26 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return LabelName[]
+     */
+    private function getLabelsFromQuery(Request $request, $queryParameter)
+    {
+        if (empty($request->query->get($queryParameter))) {
+            return [];
+        }
+
+        $labels = (array) $request->query->get($queryParameter);
+
+        return array_map(
+            function ($label) {
+                return new LabelName($label);
+            },
+            $labels
+        );
     }
 }

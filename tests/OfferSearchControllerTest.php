@@ -68,6 +68,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'q' => 'dag van de fiets',
                 'regionId' => 'gem-leuven',
                 'labels' => ['foo', 'bar'],
+                'locationLabels' => ['lorem'],
+                'organizerLabels' => ['ipsum'],
             ]
         );
 
@@ -83,6 +85,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')
+            )
+            ->withLocationLabels(
+                new LabelName('lorem')
+            )
+            ->withOrganizerLabels(
+                new LabelName('ipsum')
             )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
