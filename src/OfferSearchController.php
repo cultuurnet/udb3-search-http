@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
@@ -91,6 +92,19 @@ class OfferSearchController
                 $this->regionIndexName,
                 $this->regionDocumentType
             );
+        }
+
+        if (!empty($request->query->get('labels'))) {
+            $labels = (array) $request->query->get('labels');
+
+            $labelNames = array_map(
+                function ($label) {
+                    return new LabelName($label);
+                },
+                $labels
+            );
+
+            $parameters = $parameters->withLabels(...$labelNames);
         }
 
         $resultSet = $this->searchService->search($parameters);
