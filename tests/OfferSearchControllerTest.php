@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
@@ -153,6 +154,54 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $this->controller->search($request);
     }
+
+    /**
+     * @test
+     */
+    public function it_converts_the_embed_parameter_to_false_if_it_is_a_string_literal_equal_to_false()
+    {
+        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
+
+        $controller = new OfferSearchController(
+            $this->searchService,
+            $this->regionIndexName,
+            $this->regionDocumentType,
+            $this->queryStringFactory,
+            $pagedCollectionFactory
+        );
+
+        $request = new Request(
+            [
+                'start' => 0,
+                'limit' => 30,
+                'embed' => 'false',
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $pagedCollectionFactory->expects($this->once())
+            ->method('fromPagedResultSet')
+            ->with(
+                $expectedResultSet,
+                0,
+                30,
+                false
+            )
+            ->willReturn($this->createMock(PagedCollection::class));
+
+        $controller->search($request);
+    }
+
 
     /**
      * @test
