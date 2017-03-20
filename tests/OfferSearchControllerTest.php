@@ -3,6 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
+use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
@@ -70,6 +71,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'labels' => ['foo', 'bar'],
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
+                'textLanguages' => ['nl', 'en'],
             ]
         );
 
@@ -81,6 +83,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new RegionId('gem-leuven'),
                 $this->regionIndexName,
                 $this->regionDocumentType
+            )
+            ->withTextLanguages(
+                new Language('nl'),
+                new Language('en')
             )
             ->withLabels(
                 new LabelName('foo'),
@@ -157,20 +163,26 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function it_can_handle_a_single_string_value_as_query_parameter_for_labels()
+    public function it_can_handle_a_single_string_value_for_parameters_that_are_normally_arrays()
     {
         $request = new Request(
             [
                 'start' => 30,
                 'limit' => 10,
                 'labels' => 'foo',
+                'organizerLabels' => 'bar',
+                'locationLabels' => 'baz',
+                'textLanguages' => 'nl',
             ]
         );
 
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10))
-            ->withLabels(new LabelName('foo'));
+            ->withLabels(new LabelName('foo'))
+            ->withOrganizerLabels(new LabelName('bar'))
+            ->withLocationLabels(new LabelName('baz'))
+            ->withTextLanguages(new Language('nl'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 

@@ -3,6 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
+use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
@@ -82,6 +83,17 @@ class OfferSearchController
             $parameters = $parameters->withQueryString(
                 $this->queryStringFactory->fromString(
                     $request->query->get('q')
+                )
+            );
+        }
+
+        if (!empty($request->query->get('textLanguages'))) {
+            $parameters = $parameters->withTextLanguages(
+                ...array_map(
+                    function ($language) {
+                        return new Language($language);
+                    },
+                    (array) $request->query->get('textLanguages')
                 )
             );
         }
