@@ -96,6 +96,11 @@ class OfferSearchController
             $parameters = $parameters->withTextLanguages(...$textLanguages);
         }
 
+        $languages = $this->getLanguagesFromQuery($request, 'languages');
+        if (!empty($languages)) {
+            $parameters = $parameters->withLanguages(...$languages);
+        }
+
         if (!empty($request->query->get('regionId'))) {
             $parameters = $parameters->withRegion(
                 new RegionId($request->query->get('regionId')),

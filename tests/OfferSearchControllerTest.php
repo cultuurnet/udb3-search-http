@@ -73,6 +73,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
                 'textLanguages' => ['nl', 'en'],
+                'languages' => ['nl', 'en', 'fr'],
             ]
         );
 
@@ -88,6 +89,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withTextLanguages(
                 new Language('nl'),
                 new Language('en')
+            )
+            ->withLanguages(
+                new Language('nl'),
+                new Language('en'),
+                new Language('fr')
             )
             ->withLabels(
                 new LabelName('foo'),
@@ -260,6 +266,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerLabels' => 'bar',
                 'locationLabels' => 'baz',
                 'textLanguages' => 'nl',
+                'languages' => 'nl',
             ]
         );
 
@@ -269,7 +276,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLabels(new LabelName('foo'))
             ->withOrganizerLabels(new LabelName('bar'))
             ->withLocationLabels(new LabelName('baz'))
-            ->withTextLanguages(new Language('nl'));
+            ->withTextLanguages(new Language('nl'))
+            ->withLanguages(new Language('nl'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
