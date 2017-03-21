@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
@@ -153,6 +154,92 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $this->controller->search($request);
     }
+
+    /**
+     * @dataProvider embedParameterDataProvider
+     * @test
+     * @param mixed $embedParameter
+     * @param bool $expectedEmbedParameter
+     */
+    public function it_converts_the_embed_parameter_to_correct_boolean_value(
+        $embedParameter,
+        $expectedEmbedParameter
+    ) {
+        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
+
+        $controller = new OfferSearchController(
+            $this->searchService,
+            $this->regionIndexName,
+            $this->regionDocumentType,
+            $this->queryStringFactory,
+            $pagedCollectionFactory
+        );
+
+        $request = new Request(
+            [
+                'start' => 0,
+                'limit' => 30,
+                'embed' => $embedParameter,
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $pagedCollectionFactory->expects($this->once())
+            ->method('fromPagedResultSet')
+            ->with(
+                $expectedResultSet,
+                0,
+                30,
+                $expectedEmbedParameter
+            )
+            ->willReturn($this->createMock(PagedCollection::class));
+
+        $controller->search($request);
+    }
+
+    /**
+     * @return Request[]
+     */
+    public function embedParameterDataProvider()
+    {
+        return [
+            [
+                'false',
+                false,
+            ],
+            [
+                'FALSE',
+                false,
+            ],
+            [
+                '0',
+                false,
+            ],
+            [
+                'true',
+                true,
+            ],
+            [
+                'TRUE',
+                true,
+            ],
+            [
+                '1',
+                true
+            ],
+        ];
+    }
+
 
     /**
      * @test
