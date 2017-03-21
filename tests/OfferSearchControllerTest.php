@@ -156,10 +156,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @dataProvider embedParameterDataProvider
      * @test
+     * @param mixed $embedParameter
+     * @param bool $expectedEmbedParameter
      */
-    public function it_converts_the_embed_parameter_to_false_if_it_is_a_string_literal_equal_to_false()
-    {
+    public function it_converts_the_embed_parameter_to_correct_boolean_value(
+        $embedParameter,
+        $expectedEmbedParameter
+    ) {
         $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
 
         $controller = new OfferSearchController(
@@ -174,7 +179,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 0,
                 'limit' => 30,
-                'embed' => 'false',
+                'embed' => $embedParameter,
             ]
         );
 
@@ -195,11 +200,44 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $expectedResultSet,
                 0,
                 30,
-                false
+                $expectedEmbedParameter
             )
             ->willReturn($this->createMock(PagedCollection::class));
 
         $controller->search($request);
+    }
+
+    /**
+     * @return Request[]
+     */
+    public function embedParameterDataProvider()
+    {
+        return [
+            [
+                'false',
+                false,
+            ],
+            [
+                'FALSE',
+                false,
+            ],
+            [
+                '0',
+                false,
+            ],
+            [
+                'true',
+                true,
+            ],
+            [
+                'TRUE',
+                true,
+            ],
+            [
+                '1',
+                true
+            ],
+        ];
     }
 
 
