@@ -91,15 +91,9 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('textLanguages'))) {
-            $parameters = $parameters->withTextLanguages(
-                ...array_map(
-                    function ($language) {
-                        return new Language($language);
-                    },
-                    (array) $request->query->get('textLanguages')
-                )
-            );
+        $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
+        if (!empty($textLanguages)) {
+            $parameters = $parameters->withTextLanguages(...$textLanguages);
         }
 
         if (!empty($request->query->get('regionId'))) {
@@ -147,17 +141,49 @@ class OfferSearchController
      */
     private function getLabelsFromQuery(Request $request, $queryParameter)
     {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                return new LabelName($value);
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return Language[]
+     */
+    private function getLanguagesFromQuery(Request $request, $queryParameter)
+    {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                return new Language($value);
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @param callable|null $callback
+     * @return array
+     */
+    private function getArrayFromQueryParameters(Request $request, $queryParameter, callable $callback = null)
+    {
         if (empty($request->query->get($queryParameter))) {
             return [];
         }
 
-        $labels = (array) $request->query->get($queryParameter);
+        $values = (array) $request->query->get($queryParameter);
 
-        return array_map(
-            function ($label) {
-                return new LabelName($label);
-            },
-            $labels
-        );
+        if (!is_null($callback)) {
+            $values = array_map($callback, $values);
+        }
+
+        return $values;
     }
 }
