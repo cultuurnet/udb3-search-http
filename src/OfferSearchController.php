@@ -98,6 +98,20 @@ class OfferSearchController
             );
         }
 
+        // Do strict comparison to make sure 0 gets included.
+        if ($request->query->get('minAge', false) !== false) {
+            $parameters = $parameters->withMinimumAge(
+                new Natural($request->query->get('minAge'))
+            );
+        }
+
+        // Do strict comparison to make sure 0 gets included.
+        if ($request->query->get('maxAge', false) !== false) {
+            $parameters = $parameters->withMaximumAge(
+                new Natural($request->query->get('maxAge'))
+            );
+        }
+
         $labels = $this->getLabelsFromQuery($request, 'labels');
         if (!empty($labels)) {
             $parameters = $parameters->withLabels(...$labels);

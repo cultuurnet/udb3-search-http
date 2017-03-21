@@ -68,6 +68,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'limit' => 10,
                 'q' => 'dag van de fiets',
                 'regionId' => 'gem-leuven',
+                'minAge' => 3,
+                'maxAge' => 7,
                 'labels' => ['foo', 'bar'],
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
@@ -83,6 +85,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $this->regionIndexName,
                 $this->regionDocumentType
             )
+            ->withMinimumAge(new Natural(3))
+            ->withMaximumAge(new Natural(7))
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')
@@ -144,6 +148,36 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_works_with_a_min_age_of_zero_and_or_a_max_age_of_zero()
+    {
+        $request = new Request(
+            [
+                'start' => 0,
+                'limit' => 0,
+                'minAge' => 0,
+                'maxAge' => 0,
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30))
+            ->withMinimumAge(new Natural(0))
+            ->withMaximumAge(new Natural(0));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -239,8 +273,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ],
         ];
     }
-
-
+    
     /**
      * @test
      */
