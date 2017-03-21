@@ -2,6 +2,8 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\Hydra\PagedCollection;
+use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
@@ -68,6 +70,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'regionId' => 'gem-leuven',
                 'minAge' => 3,
                 'maxAge' => 7,
+                'labels' => ['foo', 'bar'],
+                'locationLabels' => ['lorem'],
+                'organizerLabels' => ['ipsum'],
             ]
         );
 
@@ -82,6 +87,16 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
+            ->withLabels(
+                new LabelName('foo'),
+                new LabelName('bar')
+            )
+            ->withLocationLabels(
+                new LabelName('lorem')
+            )
+            ->withOrganizerLabels(
+                new LabelName('ipsum')
+            )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -163,6 +178,119 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLimit(new Natural(30))
             ->withMinimumAge(new Natural(0))
             ->withMaximumAge(new Natural(0));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @dataProvider embedParameterDataProvider
+     * @test
+     * @param mixed $embedParameter
+     * @param bool $expectedEmbedParameter
+     */
+    public function it_converts_the_embed_parameter_to_correct_boolean_value(
+        $embedParameter,
+        $expectedEmbedParameter
+    ) {
+        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
+
+        $controller = new OfferSearchController(
+            $this->searchService,
+            $this->regionIndexName,
+            $this->regionDocumentType,
+            $this->queryStringFactory,
+            $pagedCollectionFactory
+        );
+
+        $request = new Request(
+            [
+                'start' => 0,
+                'limit' => 30,
+                'embed' => $embedParameter,
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $pagedCollectionFactory->expects($this->once())
+            ->method('fromPagedResultSet')
+            ->with(
+                $expectedResultSet,
+                0,
+                30,
+                $expectedEmbedParameter
+            )
+            ->willReturn($this->createMock(PagedCollection::class));
+
+        $controller->search($request);
+    }
+
+    /**
+     * @return Request[]
+     */
+    public function embedParameterDataProvider()
+    {
+        return [
+            [
+                'false',
+                false,
+            ],
+            [
+                'FALSE',
+                false,
+            ],
+            [
+                '0',
+                false,
+            ],
+            [
+                'true',
+                true,
+            ],
+            [
+                'TRUE',
+                true,
+            ],
+            [
+                '1',
+                true
+            ],
+        ];
+    }
+    
+    /**
+     * @test
+     */
+    public function it_can_handle_a_single_string_value_as_query_parameter_for_labels()
+    {
+        $request = new Request(
+            [
+                'start' => 30,
+                'limit' => 10,
+                'labels' => 'foo',
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withStart(new Natural(30))
+            ->withLimit(new Natural(10))
+            ->withLabels(new LabelName('foo'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 

@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
@@ -67,7 +68,11 @@ class OfferSearchController
     {
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-        $embed = (bool) $request->query->get('embed', false);
+
+        // The embed option is returned as a string, and casting "false" to a
+        // boolean returns true, so we have to do some extra conversion.
+        $embedParameter = $request->query->get('embed', false);
+        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
 
         if ($limit == 0) {
             $limit = 30;
@@ -107,6 +112,21 @@ class OfferSearchController
             );
         }
 
+        $labels = $this->getLabelsFromQuery($request, 'labels');
+        if (!empty($labels)) {
+            $parameters = $parameters->withLabels(...$labels);
+        }
+
+        $locationLabels = $this->getLabelsFromQuery($request, 'locationLabels');
+        if (!empty($locationLabels)) {
+            $parameters = $parameters->withLocationLabels(...$locationLabels);
+        }
+
+        $organizerLabels = $this->getLabelsFromQuery($request, 'organizerLabels');
+        if (!empty($organizerLabels)) {
+            $parameters = $parameters->withOrganizerLabels(...$organizerLabels);
+        }
+
         $resultSet = $this->searchService->search($parameters);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
@@ -120,5 +140,26 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return LabelName[]
+     */
+    private function getLabelsFromQuery(Request $request, $queryParameter)
+    {
+        if (empty($request->query->get($queryParameter))) {
+            return [];
+        }
+
+        $labels = (array) $request->query->get($queryParameter);
+
+        return array_map(
+            function ($label) {
+                return new LabelName($label);
+            },
+            $labels
+        );
     }
 }
