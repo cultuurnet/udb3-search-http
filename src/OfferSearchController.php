@@ -69,7 +69,11 @@ class OfferSearchController
     {
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-        $embed = (bool) $request->query->get('embed', false);
+
+        // The embed option is returned as a string, and casting "false" to a
+        // boolean returns true, so we have to do some extra conversion.
+        $embedParameter = $request->query->get('embed', false);
+        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
 
         if ($limit == 0) {
             $limit = 30;
