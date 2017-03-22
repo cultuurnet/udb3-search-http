@@ -3,6 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
+use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
@@ -109,6 +110,13 @@ class OfferSearchController
         if ($request->query->get('maxAge', false) !== false) {
             $parameters = $parameters->withMaximumAge(
                 new Natural($request->query->get('maxAge'))
+            );
+        }
+
+        // Do strict comparison to make sure 0 gets included.
+        if ($request->query->get('price', false) !== false) {
+            $parameters = $parameters->withPrice(
+                Price::fromFloat((float) $request->query->get('price'))
             );
         }
 

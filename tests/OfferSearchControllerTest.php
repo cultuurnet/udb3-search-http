@@ -4,6 +4,7 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
+use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
@@ -70,6 +71,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'regionId' => 'gem-leuven',
                 'minAge' => 3,
                 'maxAge' => 7,
+                'price' => 1.55,
                 'labels' => ['foo', 'bar'],
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
@@ -87,6 +89,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
+            ->withPrice(Price::fromFloat(1.55))
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')
@@ -273,7 +276,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ],
         ];
     }
-    
+
     /**
      * @test
      */
