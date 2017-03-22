@@ -93,16 +93,13 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
-<<<<<<< HEAD
             ->withPrice(Price::fromFloat(1.55))
             ->withMinimumPrice(Price::fromFloat(0.99))
             ->withMaximumPrice(Price::fromFloat(1.99))
-=======
             ->withTextLanguages(
                 new Language('nl'),
                 new Language('en')
             )
->>>>>>> master
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')
