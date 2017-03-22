@@ -72,6 +72,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'minAge' => 3,
                 'maxAge' => 7,
                 'price' => 1.55,
+                'minPrice' => 0.99,
+                'maxPrice' => 1.99,
                 'labels' => ['foo', 'bar'],
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
@@ -90,6 +92,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
             ->withPrice(Price::fromFloat(1.55))
+            ->withMinimumPrice(Price::fromFloat(0.99))
+            ->withMaximumPrice(Price::fromFloat(1.99))
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')

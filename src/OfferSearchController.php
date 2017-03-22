@@ -120,6 +120,20 @@ class OfferSearchController
             );
         }
 
+        // Do strict comparison to make sure 0 gets included.
+        if ($request->query->get('minPrice', false) !== false) {
+            $parameters = $parameters->withMinimumPrice(
+                Price::fromFloat((float) $request->query->get('minPrice'))
+            );
+        }
+
+        // Do strict comparison to make sure 0 gets included.
+        if ($request->query->get('maxPrice', false) !== false) {
+            $parameters = $parameters->withMaximumPrice(
+                Price::fromFloat((float) $request->query->get('maxPrice'))
+            );
+        }
+
         $labels = $this->getLabelsFromQuery($request, 'labels');
         if (!empty($labels)) {
             $parameters = $parameters->withLabels(...$labels);
