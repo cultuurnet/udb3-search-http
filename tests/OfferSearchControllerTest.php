@@ -75,6 +75,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'price' => 1.55,
                 'minPrice' => 0.99,
                 'maxPrice' => 1.99,
+                'audienceType' => 'members',
                 'labels' => ['foo', 'bar'],
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
@@ -97,6 +98,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withPrice(Price::fromFloat(1.55))
             ->withMinimumPrice(Price::fromFloat(0.99))
             ->withMaximumPrice(Price::fromFloat(1.99))
+            ->withAudienceType(new StringLiteral('members'))
             ->withTextLanguages(
                 new Language('nl'),
                 new Language('en')

@@ -145,6 +145,12 @@ class OfferSearchController
             );
         }
 
+        if ($request->query->get('audienceType')) {
+            $parameters = $parameters->withAudienceType(
+                new StringLiteral($request->query->get('audienceType'))
+            );
+        }
+
         $labels = $this->getLabelsFromQuery($request, 'labels');
         if (!empty($labels)) {
             $parameters = $parameters->withLabels(...$labels);
