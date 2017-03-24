@@ -5,6 +5,7 @@ namespace CultuurNet\UDB3\Search\Http;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
+use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
@@ -147,7 +148,7 @@ class OfferSearchController
 
         if ($request->query->get('audienceType')) {
             $parameters = $parameters->withAudienceType(
-                new StringLiteral($request->query->get('audienceType'))
+                new AudienceType($request->query->get('audienceType'))
             );
         }
 

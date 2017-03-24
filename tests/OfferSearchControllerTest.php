@@ -7,6 +7,7 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
+use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
@@ -98,7 +99,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withPrice(Price::fromFloat(1.55))
             ->withMinimumPrice(Price::fromFloat(0.99))
             ->withMaximumPrice(Price::fromFloat(1.99))
-            ->withAudienceType(new StringLiteral('members'))
+            ->withAudienceType(new AudienceType('members'))
             ->withTextLanguages(
                 new Language('nl'),
                 new Language('en')
