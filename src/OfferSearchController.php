@@ -8,6 +8,7 @@ use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
@@ -175,6 +176,12 @@ class OfferSearchController
         if ($request->query->get('maxPrice', false) !== false) {
             $parameters = $parameters->withMaximumPrice(
                 Price::fromFloat((float) $request->query->get('maxPrice'))
+            );
+        }
+
+        if ($request->query->get('audienceType')) {
+            $parameters = $parameters->withAudienceType(
+                new AudienceType($request->query->get('audienceType'))
             );
         }
 
