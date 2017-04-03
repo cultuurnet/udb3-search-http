@@ -155,14 +155,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new TermLabel('foo1'),
                 new TermLabel('bar1')
             )
-            ->withOrganizerTermIds(
-                new TermId('9012'),
-                new TermId('3456')
-            )
-            ->withOrganizerTermLabels(
-                new TermLabel('foo2'),
-                new TermLabel('bar2')
-            )
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')
