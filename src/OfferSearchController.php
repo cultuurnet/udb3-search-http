@@ -197,6 +197,26 @@ class OfferSearchController
             $parameters = $parameters->withTermLabels(...$termLabels);
         }
 
+        $locationTermIds = $this->getTermIdsFromQuery($request, 'locationTermIds');
+        if (!empty($locationTermIds)) {
+            $parameters = $parameters->withLocationTermIds(...$locationTermIds);
+        }
+
+        $locationTermLabels = $this->getTermLabelsFromQuery($request, 'locationTermLabels');
+        if (!empty($locationTermLabels)) {
+            $parameters = $parameters->withLocationTermLabels(...$locationTermLabels);
+        }
+
+        $organizerTermIds = $this->getTermIdsFromQuery($request, 'organizerTermIds');
+        if (!empty($organizerTermIds)) {
+            $parameters = $parameters->withOrganizerTermIds(...$organizerTermIds);
+        }
+
+        $organizerTermLabels = $this->getTermLabelsFromQuery($request, 'organizerTermLabels');
+        if (!empty($organizerTermLabels)) {
+            $parameters = $parameters->withOrganizerTermLabels(...$organizerTermLabels);
+        }
+
         $labels = $this->getLabelsFromQuery($request, 'labels');
         if (!empty($labels)) {
             $parameters = $parameters->withLabels(...$labels);

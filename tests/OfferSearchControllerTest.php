@@ -99,6 +99,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'languages' => ['nl', 'en', 'fr'],
                 'termIds' => ['1.45.678.95', 'azYBznHY'],
                 'termLabels' => ['Jeugdhuis', 'Cultureel centrum'],
+                'locationTermIds' => ['1234', '5678'],
+                'locationTermLabels' => ['foo1', 'bar1'],
+                'organizerTermIds' => ['9012', '3456'],
+                'organizerTermLabels' => ['foo2', 'bar2'],
             ]
         );
 
@@ -142,6 +146,22 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withTermLabels(
                 new TermLabel('Jeugdhuis'),
                 new TermLabel('Cultureel centrum')
+            )
+            ->withLocationTermIds(
+                new TermId('1234'),
+                new TermId('5678')
+            )
+            ->withLocationTermLabels(
+                new TermLabel('foo1'),
+                new TermLabel('bar1')
+            )
+            ->withOrganizerTermIds(
+                new TermId('9012'),
+                new TermId('3456')
+            )
+            ->withOrganizerTermLabels(
+                new TermLabel('foo2'),
+                new TermLabel('bar2')
             )
             ->withLabels(
                 new LabelName('foo'),
