@@ -2,11 +2,15 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\Geocoding\Coordinate\Coordinates;
+use CultuurNet\Geocoding\Coordinate\Latitude;
+use CultuurNet\Geocoding\Coordinate\Longitude;
 use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
+use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
@@ -41,6 +45,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     private $queryStringFactory;
 
     /**
+     * @var MockDistanceFactory
+     */
+    private $distanceFactory;
+
+    /**
      * @var OfferSearchController
      */
     private $controller;
@@ -53,12 +62,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->regionDocumentType = new StringLiteral('region');
 
         $this->queryStringFactory = new MockQueryStringFactory();
+        $this->distanceFactory = new MockDistanceFactory();
 
         $this->controller = new OfferSearchController(
             $this->searchService,
             $this->regionIndexName,
             $this->regionDocumentType,
-            $this->queryStringFactory
+            $this->queryStringFactory,
+            $this->distanceFactory
         );
     }
 
@@ -73,6 +84,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'limit' => 10,
                 'q' => 'dag van de fiets',
                 'regionId' => 'gem-leuven',
+                'coordinates' => '-40,70',
+                'distance' => '30km',
                 'minAge' => 3,
                 'maxAge' => 7,
                 'price' => 1.55,
@@ -97,6 +110,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new RegionId('gem-leuven'),
                 $this->regionIndexName,
                 $this->regionDocumentType
+            )
+            ->withGeoDistanceParameters(
+                new GeoDistanceParameters(
+                    new Coordinates(
+                        new Latitude(-40.0),
+                        new Longitude(70.0)
+                    ),
+                    new MockDistance('30km')
+                )
             )
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
@@ -196,6 +218,40 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
+    public function it_throws_an_exception_if_coordinates_is_given_without_distance()
+    {
+        $request = new Request(
+            [
+                'coordinates' => '-40,70',
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Required "distance" parameter missing when searching by coordinates.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_if_distance_is_given_without_coordinates()
+    {
+        $request = new Request(
+            [
+                'distance' => '30km',
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Required "coordinates" parameter missing when searching by distance.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
     public function it_works_with_a_min_age_of_zero_and_or_a_max_age_of_zero()
     {
         $request = new Request(
@@ -240,6 +296,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             $this->regionIndexName,
             $this->regionDocumentType,
             $this->queryStringFactory,
+            $this->distanceFactory,
             $pagedCollectionFactory
         );
 

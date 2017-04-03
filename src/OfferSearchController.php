@@ -2,9 +2,12 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\Geocoding\Coordinate\Coordinates;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
+use CultuurNet\UDB3\Search\DistanceFactoryInterface;
+use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
@@ -36,6 +39,16 @@ class OfferSearchController
     private $regionDocumentType;
 
     /**
+     * @var QueryStringFactoryInterface
+     */
+    private $queryStringFactory;
+
+    /**
+     * @var DistanceFactoryInterface
+     */
+    private $distanceFactory;
+
+    /**
      * @var PagedCollectionFactoryInterface
      */
     private $pagedCollectionFactory;
@@ -45,6 +58,7 @@ class OfferSearchController
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
      * @param QueryStringFactoryInterface $queryStringFactory
+     * @param DistanceFactoryInterface $distanceFactory
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
@@ -52,6 +66,7 @@ class OfferSearchController
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
         QueryStringFactoryInterface $queryStringFactory,
+        DistanceFactoryInterface $distanceFactory,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
@@ -62,6 +77,7 @@ class OfferSearchController
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
         $this->queryStringFactory = $queryStringFactory;
+        $this->distanceFactory = $distanceFactory;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
     }
 
@@ -112,6 +128,23 @@ class OfferSearchController
                 $this->regionDocumentType
             );
         }
+
+        $coordinates = $request->query->get('coordinates', false);
+        $distance = $request->query->get('distance', false);
+
+        if ($coordinates && !$distance) {
+            throw new \InvalidArgumentException('Required "distance" parameter missing when searching by coordinates.');
+        } elseif ($distance && !$coordinates) {
+            throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
+        } elseif ($coordinates && $distance) {
+            $parameters = $parameters->withGeoDistanceParameters(
+                new GeoDistanceParameters(
+                    Coordinates::fromLatLonString($coordinates),
+                    $this->distanceFactory->fromString($distance)
+                )
+            );
+        }
+
 
         // Do strict comparison to make sure 0 gets included.
         if ($request->query->get('minAge', false) !== false) {
