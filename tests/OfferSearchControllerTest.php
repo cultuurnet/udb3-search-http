@@ -14,6 +14,8 @@ use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\TermId;
+use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\Request;
@@ -95,6 +97,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerLabels' => ['ipsum'],
                 'textLanguages' => ['nl', 'en'],
                 'languages' => ['nl', 'en', 'fr'],
+                'termIds' => ['1.45.678.95', 'azYBznHY'],
+                'termLabels' => ['Jeugdhuis', 'Cultureel centrum'],
+                'locationTermIds' => ['1234', '5678'],
+                'locationTermLabels' => ['foo1', 'bar1'],
+                'organizerTermIds' => ['9012', '3456'],
+                'organizerTermLabels' => ['foo2', 'bar2'],
             ]
         );
 
@@ -130,6 +138,22 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new Language('nl'),
                 new Language('en'),
                 new Language('fr')
+            )
+            ->withTermIds(
+                new TermId('1.45.678.95'),
+                new TermId('azYBznHY')
+            )
+            ->withTermLabels(
+                new TermLabel('Jeugdhuis'),
+                new TermLabel('Cultureel centrum')
+            )
+            ->withLocationTermIds(
+                new TermId('1234'),
+                new TermId('5678')
+            )
+            ->withLocationTermLabels(
+                new TermLabel('foo1'),
+                new TermLabel('bar1')
             )
             ->withLabels(
                 new LabelName('foo'),
@@ -367,6 +391,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'locationLabels' => 'baz',
                 'textLanguages' => 'nl',
                 'languages' => 'nl',
+                'termIds' => '0.145.567.6',
+                'termLabels' => 'Jeugdhuis',
             ]
         );
 
@@ -377,7 +403,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withOrganizerLabels(new LabelName('bar'))
             ->withLocationLabels(new LabelName('baz'))
             ->withTextLanguages(new Language('nl'))
-            ->withLanguages(new Language('nl'));
+            ->withLanguages(new Language('nl'))
+            ->withTermIds(new TermId('0.145.567.6'))
+            ->withTermLabels(new TermLabel('Jeugdhuis'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 

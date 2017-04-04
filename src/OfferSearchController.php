@@ -11,6 +11,8 @@ use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\TermId;
+use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -185,6 +187,26 @@ class OfferSearchController
             );
         }
 
+        $termIds = $this->getTermIdsFromQuery($request, 'termIds');
+        if (!empty($termIds)) {
+            $parameters = $parameters->withTermIds(...$termIds);
+        }
+
+        $termLabels = $this->getTermLabelsFromQuery($request, 'termLabels');
+        if (!empty($termLabels)) {
+            $parameters = $parameters->withTermLabels(...$termLabels);
+        }
+
+        $locationTermIds = $this->getTermIdsFromQuery($request, 'locationTermIds');
+        if (!empty($locationTermIds)) {
+            $parameters = $parameters->withLocationTermIds(...$locationTermIds);
+        }
+
+        $locationTermLabels = $this->getTermLabelsFromQuery($request, 'locationTermLabels');
+        if (!empty($locationTermLabels)) {
+            $parameters = $parameters->withLocationTermLabels(...$locationTermLabels);
+        }
+
         $labels = $this->getLabelsFromQuery($request, 'labels');
         if (!empty($labels)) {
             $parameters = $parameters->withLabels(...$labels);
@@ -213,6 +235,38 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return TermId[]
+     */
+    private function getTermIdsFromQuery(Request $request, $queryParameter)
+    {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                return new TermId($value);
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return TermId[]
+     */
+    private function getTermLabelsFromQuery(Request $request, $queryParameter)
+    {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                return new TermLabel($value);
+            }
+        );
     }
 
     /**
