@@ -11,6 +11,7 @@ use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -117,6 +118,12 @@ class OfferSearchController
         $languages = $this->getLanguagesFromQuery($request, 'languages');
         if (!empty($languages)) {
             $parameters = $parameters->withLanguages(...$languages);
+        }
+
+        if (!empty($request->query->get('workflowStatus'))) {
+            $parameters = $parameters->withWorkflowStatus(
+                new WorkflowStatus($request->query->get('workflowStatus'))
+            );
         }
 
         if (!empty($request->query->get('regionId'))) {

@@ -14,6 +14,7 @@ use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\Request;
@@ -81,6 +82,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'start' => 30,
                 'limit' => 10,
                 'q' => 'dag van de fiets',
+                'workflowStatus' => 'DRAFT',
                 'regionId' => 'gem-leuven',
                 'coordinates' => '-40,70',
                 'distance' => '30km',
@@ -101,6 +103,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withQueryString(
                 new MockQueryString('dag van de fiets')
+            )
+            ->withWorkflowStatus(
+                new WorkflowStatus('DRAFT')
             )
             ->withRegion(
                 new RegionId('gem-leuven'),
