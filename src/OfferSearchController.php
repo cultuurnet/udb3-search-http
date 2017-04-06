@@ -9,6 +9,7 @@ use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
+use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
@@ -120,6 +121,24 @@ class OfferSearchController
         $languages = $this->getLanguagesFromQuery($request, 'languages');
         if (!empty($languages)) {
             $parameters = $parameters->withLanguages(...$languages);
+        }
+
+        if (!empty($request->query->get('id'))) {
+            $parameters = $parameters->withCdbid(
+                new Cdbid($request->query->get('id'))
+            );
+        }
+
+        if (!empty($request->query->get('locationId'))) {
+            $parameters = $parameters->withLocationCdbid(
+                new Cdbid($request->query->get('locationId'))
+            );
+        }
+
+        if (!empty($request->query->get('organizerId'))) {
+            $parameters = $parameters->withOrganizerCdbid(
+                new Cdbid($request->query->get('organizerId'))
+            );
         }
 
         if (!empty($request->query->get('workflowStatus'))) {
