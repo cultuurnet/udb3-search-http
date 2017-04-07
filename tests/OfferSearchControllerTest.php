@@ -6,6 +6,7 @@ use CultuurNet\Geocoding\Coordinate\Coordinates;
 use CultuurNet\Geocoding\Coordinate\Latitude;
 use CultuurNet\Geocoding\Coordinate\Longitude;
 use CultuurNet\Hydra\PagedCollection;
+use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
@@ -88,6 +89,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'regionId' => 'gem-leuven',
                 'coordinates' => '-40,70',
                 'distance' => '30km',
+                'postalCode' => 3000,
                 'minAge' => 3,
                 'maxAge' => 7,
                 'price' => 1.55,
@@ -129,6 +131,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                     new MockDistance('30km')
                 )
             )
+            ->withPostalCode(new PostalCode("3000"))
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
             ->withPrice(Price::fromFloat(1.55))

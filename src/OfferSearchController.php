@@ -3,6 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\Geocoding\Coordinate\Coordinates;
+use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
@@ -152,6 +153,12 @@ class OfferSearchController
             );
         }
 
+        $postalCode = (string) $request->query->get('postalCode');
+        if (!empty($postalCode)) {
+            $parameters = $parameters->withPostalCode(
+                new PostalCode($postalCode)
+            );
+        }
 
         // Do strict comparison to make sure 0 gets included.
         if ($request->query->get('minAge', false) !== false) {
