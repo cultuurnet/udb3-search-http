@@ -1,0 +1,58 @@
+{
+    "region": {
+        "prv-vlaams-brabant": {
+            "name": {
+                "nl": "Vlaams-Brabant"
+            },
+            "count": 20,
+            "children": {
+                "gem-leuven": {
+                    "name": {
+                        "nl": "Leuven"
+                    },
+                    "count": 15
+                },
+                "gem-diest": {
+                    "name": {
+                        "nl": "Diest"
+                    },
+                    "count": 5
+                }
+            }
+        },
+        "prv-antwerpen": {
+            "name": {
+                "nl": "Antwerpen"
+            },
+            "count": 32,
+            "children": {
+                "gem-antwerpen": {
+                    "name": {
+                        "nl": "Antwerpen"
+                    },
+                    "count": 17
+                },
+                "gem-westerlo": {
+                    "name": {
+                        "nl": "Westerlo"
+                    },
+                    "count": 15
+                }
+            }
+        }
+    },
+    "term": {
+        "0.11.6.5": {
+            "name": {
+                "nl": "Jeugdhuis of jeugdcentrum"
+            },
+            "count": 7
+        },
+        "0.11.6.7": {
+            "name": {
+                "nl": "Bibliotheek"
+            },
+            "count": 14
+        }
+    }
+}
