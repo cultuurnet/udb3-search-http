@@ -481,4 +481,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $this->controller->search($request);
     }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_an_unknown_facet_name_is_given()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Unknown facet name 'bla'.");
+        $request = new Request(['facets' => ['region', 'bla']]);
+        $this->controller->search($request);
+    }
 }
