@@ -8,8 +8,10 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
+use CultuurNet\UDB3\Search\Facet\FacetTreeInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
+use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
@@ -51,6 +53,11 @@ class OfferSearchController
     private $distanceFactory;
 
     /**
+     * @var FacetTreeNormalizerInterface
+     */
+    private $facetTreeNormalizer;
+
+    /**
      * @var PagedCollectionFactoryInterface
      */
     private $pagedCollectionFactory;
@@ -61,6 +68,7 @@ class OfferSearchController
      * @param StringLiteral $regionDocumentType
      * @param QueryStringFactoryInterface $queryStringFactory
      * @param DistanceFactoryInterface $distanceFactory
+     * @param FacetTreeNormalizerInterface $facetTreeNormalizer
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
@@ -69,6 +77,7 @@ class OfferSearchController
         StringLiteral $regionDocumentType,
         QueryStringFactoryInterface $queryStringFactory,
         DistanceFactoryInterface $distanceFactory,
+        FacetTreeNormalizerInterface $facetTreeNormalizer,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
@@ -80,6 +89,7 @@ class OfferSearchController
         $this->regionDocumentType = $regionDocumentType;
         $this->queryStringFactory = $queryStringFactory;
         $this->distanceFactory = $distanceFactory;
+        $this->facetTreeNormalizer = $facetTreeNormalizer;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
     }
 
@@ -236,6 +246,11 @@ class OfferSearchController
             $parameters = $parameters->withOrganizerLabels(...$organizerLabels);
         }
 
+        $facets = $this->getFacetsFromQuery($request, 'facets');
+        if (!empty($facets)) {
+            $parameters = $parameters->withFacets(...$facets);
+        }
+
         $resultSet = $this->searchService->search($parameters);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
@@ -245,7 +260,15 @@ class OfferSearchController
             $embed
         );
 
-        return (new JsonResponse($pagedCollection, 200, ['Content-Type' => 'application/ld+json']))
+        $jsonArray = $pagedCollection->jsonSerialize();
+
+        foreach ($resultSet->getFacets() as $facetFilter) {
+            // Singular "facet" to be consistent with "member" in Hydra
+            // PagedCollection.
+            $jsonArray['facet'][$facetFilter->getKey()] = $this->facetTreeNormalizer->normalize($facetFilter);
+        }
+
+        return (new JsonResponse($jsonArray, 200, ['Content-Type' => 'application/ld+json']))
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
@@ -311,6 +334,27 @@ class OfferSearchController
             $queryParameter,
             function ($value) {
                 return new Language($value);
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param $queryParameter
+     * @return FacetName[]
+     * @throws \InvalidArgumentException
+     */
+    private function getFacetsFromQuery(Request $request, $queryParameter)
+    {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                try {
+                    return FacetName::fromNative(strtolower($value));
+                } catch (\InvalidArgumentException $e) {
+                    throw new \InvalidArgumentException("Unknown facet name '$value'.");
+                }
             }
         );
     }
