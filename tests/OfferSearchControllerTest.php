@@ -13,6 +13,7 @@ use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
+use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
@@ -85,6 +86,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'start' => 30,
                 'limit' => 10,
                 'q' => 'dag van de fiets',
+                'id' => '42926044-09f4-4bd5-bc35-427b2fc1a525',
+                'locationId' => '652ab95e-fdff-41ce-8894-1b29dce0d230',
+                'organizerId' => '392168d7-57c9-4488-8e2e-d492c843054b',
                 'workflowStatus' => 'DRAFT',
                 'regionId' => 'gem-leuven',
                 'coordinates' => '-40,70',
@@ -113,6 +117,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withQueryString(
                 new MockQueryString('dag van de fiets')
+            )
+            ->withCdbid(
+                new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
+            )
+            ->withLocationCdbid(
+                new Cdbid('652ab95e-fdff-41ce-8894-1b29dce0d230')
+            )
+            ->withOrganizerCdbid(
+                new Cdbid('392168d7-57c9-4488-8e2e-d492c843054b')
             )
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
