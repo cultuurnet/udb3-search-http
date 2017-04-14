@@ -123,7 +123,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'locationTermLabels' => ['foo1', 'bar1'],
                 'organizerTermIds' => ['9012', '3456'],
                 'organizerTermLabels' => ['foo2', 'bar2'],
-                'facets' => ['region'],
+                'facets' => ['regions'],
             ]
         );
 
@@ -200,7 +200,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new LabelName('ipsum')
             )
             ->withFacets(
-                FacetName::REGION()
+                FacetName::REGIONS()
             )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
@@ -216,7 +216,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $expectedResultSet = $expectedResultSet->withFacets(
             new FacetFilter(
-                'region',
+                'regions',
                 [
                     new FacetNode(
                         'gem-leuven',
@@ -250,7 +250,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                     ['@id' => 'places/2'],
                 ],
                 'facet' => [
-                    'region' => [
+                    'regions' => [
                         'gem-leuven' => [
                             'name' => [
                                 'nl' => 'Leuven'
@@ -469,7 +469,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'languages' => 'nl',
                 'termIds' => '0.145.567.6',
                 'termLabels' => 'Jeugdhuis',
-                'facets' => 'region',
+                'facets' => 'regions',
             ]
         );
 
@@ -483,7 +483,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLanguages(new Language('nl'))
             ->withTermIds(new TermId('0.145.567.6'))
             ->withTermLabels(new TermLabel('Jeugdhuis'))
-            ->withFacets(FacetName::REGION());
+            ->withFacets(FacetName::REGIONS());
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -502,7 +502,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Unknown facet name 'bla'.");
-        $request = new Request(['facets' => ['region', 'bla']]);
+        $request = new Request(['facets' => ['regions', 'bla']]);
         $this->controller->search($request);
     }
 }
