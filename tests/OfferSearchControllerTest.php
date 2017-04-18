@@ -313,12 +313,13 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
-     * @dataProvider embedParameterDataProvider
      * @test
+     * @dataProvider embedParameterDataProvider
+     *
      * @param mixed $embedParameter
      * @param bool $expectedEmbedParameter
      */
-    public function it_converts_the_embed_parameter_to_correct_boolean_value(
+    public function it_converts_the_embed_parameter_to_a_correct_boolean_and_passes_it_to_the_paged_collection_factory(
         $embedParameter,
         $expectedEmbedParameter
     ) {

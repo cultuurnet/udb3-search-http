@@ -48,6 +48,11 @@ class OrganizerSearchController
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
 
+        // The embed option is returned as a string, and casting "false" to a
+        // boolean returns true, so we have to do some extra conversion.
+        $embedParameter = $request->query->get('embed', false);
+        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
+
         if ($limit == 0) {
             $limit = 30;
         }
@@ -73,7 +78,8 @@ class OrganizerSearchController
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit
+            $limit,
+            $embed
         );
 
         return (new JsonResponse($pagedCollection, 200, ['Content-Type' => 'application/ld+json']))

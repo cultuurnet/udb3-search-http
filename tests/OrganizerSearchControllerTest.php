@@ -2,6 +2,8 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\Hydra\PagedCollection;
+use CultuurNet\UDB3\Organizer\Organizer;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
@@ -106,5 +108,88 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->willReturn($expectedResultSet);
 
         $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     * @dataProvider embedParameterDataProvider
+     *
+     * @param mixed $embedParameter
+     * @param bool $expectedEmbedParameter
+     */
+    public function it_converts_the_embed_parameter_to_a_correct_boolean_and_passes_it_to_the_paged_collection_factory(
+        $embedParameter,
+        $expectedEmbedParameter
+    ) {
+        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
+
+        $controller = new OrganizerSearchController(
+            $this->searchService,
+            $pagedCollectionFactory
+        );
+
+        $request = new Request(
+            [
+                'start' => 0,
+                'limit' => 30,
+                'embed' => $embedParameter,
+            ]
+        );
+
+        $expectedSearchParameters = (new OrganizerSearchParameters())
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $pagedCollectionFactory->expects($this->once())
+            ->method('fromPagedResultSet')
+            ->with(
+                $expectedResultSet,
+                0,
+                30,
+                $expectedEmbedParameter
+            )
+            ->willReturn($this->createMock(PagedCollection::class));
+
+        $controller->search($request);
+    }
+
+    /**
+     * @return Request[]
+     */
+    public function embedParameterDataProvider()
+    {
+        return [
+            [
+                'false',
+                false,
+            ],
+            [
+                'FALSE',
+                false,
+            ],
+            [
+                '0',
+                false,
+            ],
+            [
+                'true',
+                true,
+            ],
+            [
+                'TRUE',
+                true,
+            ],
+            [
+                '1',
+                true
+            ],
+        ];
     }
 }
