@@ -3,7 +3,6 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\Hydra\PagedCollection;
-use CultuurNet\UDB3\Organizer\Organizer;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
