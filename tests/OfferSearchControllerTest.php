@@ -11,9 +11,12 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
+use CultuurNet\UDB3\Search\Facet\FacetFilter;
+use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
+use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
@@ -21,6 +24,7 @@ use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use CultuurNet\UDB3\Search\Region\RegionId;
+use CultuurNet\UDB3\ValueObject\MultilingualString;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
@@ -53,6 +57,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     private $distanceFactory;
 
     /**
+     * @var NodeAwareFacetTreeNormalizer
+     */
+    private $facetTreeNormalizer;
+
+    /**
      * @var OfferSearchController
      */
     private $controller;
@@ -67,12 +76,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->queryStringFactory = new MockQueryStringFactory();
         $this->distanceFactory = new MockDistanceFactory();
 
+        $this->facetTreeNormalizer = new NodeAwareFacetTreeNormalizer();
+
         $this->controller = new OfferSearchController(
             $this->searchService,
             $this->regionIndexName,
             $this->regionDocumentType,
             $this->queryStringFactory,
-            $this->distanceFactory
+            $this->distanceFactory,
+            $this->facetTreeNormalizer
         );
     }
 
@@ -111,6 +123,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'locationTermLabels' => ['foo1', 'bar1'],
                 'organizerTermIds' => ['9012', '3456'],
                 'organizerTermLabels' => ['foo2', 'bar2'],
+                'facets' => ['regions'],
             ]
         );
 
@@ -186,6 +199,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withOrganizerLabels(
                 new LabelName('ipsum')
             )
+            ->withFacets(
+                FacetName::REGIONS()
+            )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -196,6 +212,26 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new JsonDocument('3f2ba18c-59a9-4f65-a242-462ad467c72b', '{"@id": "events/1"}'),
                 new JsonDocument('39d06346-b762-4ccd-8b3a-142a8f6abbbe', '{"@id": "places/2"}'),
             ]
+        );
+
+        $expectedResultSet = $expectedResultSet->withFacets(
+            new FacetFilter(
+                'regions',
+                [
+                    new FacetNode(
+                        'gem-leuven',
+                        new MultilingualString(new Language('nl'), new StringLiteral('Leuven')),
+                        7,
+                        [
+                            new FacetNode(
+                                'gem-wijgmaal',
+                                new MultilingualString(new Language('nl'), new StringLiteral('Wijgmaal')),
+                                3
+                            ),
+                        ]
+                    ),
+                ]
+            )
         );
 
         $this->searchService->expects($this->once())
@@ -212,6 +248,24 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'member' => [
                     ['@id' => 'events/1'],
                     ['@id' => 'places/2'],
+                ],
+                'facet' => [
+                    'regions' => [
+                        'gem-leuven' => [
+                            'name' => [
+                                'nl' => 'Leuven'
+                            ],
+                            'count' => 7,
+                            'children' => [
+                                'gem-wijgmaal' => [
+                                    'name' => [
+                                        'nl' => 'Wijgmaal',
+                                    ],
+                                    'count' => 3,
+                                ],
+                            ],
+                        ],
+                    ],
                 ],
             ]
         );
@@ -331,6 +385,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             $this->regionDocumentType,
             $this->queryStringFactory,
             $this->distanceFactory,
+            $this->facetTreeNormalizer,
             $pagedCollectionFactory
         );
 
@@ -415,6 +470,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'languages' => 'nl',
                 'termIds' => '0.145.567.6',
                 'termLabels' => 'Jeugdhuis',
+                'facets' => 'regions',
             ]
         );
 
@@ -427,7 +483,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withTextLanguages(new Language('nl'))
             ->withLanguages(new Language('nl'))
             ->withTermIds(new TermId('0.145.567.6'))
-            ->withTermLabels(new TermLabel('Jeugdhuis'));
+            ->withTermLabels(new TermLabel('Jeugdhuis'))
+            ->withFacets(FacetName::REGIONS());
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -436,6 +493,17 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->with($expectedSearchParameters)
             ->willReturn($expectedResultSet);
 
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_an_unknown_facet_name_is_given()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Unknown facet name 'bla'.");
+        $request = new Request(['facets' => ['regions', 'bla']]);
         $this->controller->search($request);
     }
 }
