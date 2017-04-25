@@ -26,6 +26,8 @@ use CultuurNet\UDB3\Search\PagedResultSet;
 use CultuurNet\UDB3\Search\Region\RegionId;
 use CultuurNet\UDB3\ValueObject\MultilingualString;
 use Symfony\Component\HttpFoundation\Request;
+use ValueObjects\Geography\Country;
+use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 
@@ -106,6 +108,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'coordinates' => '-40,70',
                 'distance' => '30km',
                 'postalCode' => 3000,
+                'addressCountry' => 'BE',
                 'minAge' => 3,
                 'maxAge' => 7,
                 'price' => 1.55,
@@ -158,6 +161,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 )
             )
             ->withPostalCode(new PostalCode("3000"))
+            ->withAddressCountry(new Country(CountryCode::fromNative('BE')))
             ->withMinimumAge(new Natural(3))
             ->withMaximumAge(new Natural(7))
             ->withPrice(Price::fromFloat(1.55))
@@ -504,6 +508,37 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Unknown facet name 'bla'.");
         $request = new Request(['facets' => ['regions', 'bla']]);
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_an_unknown_address_country_is_given()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Unknown country code 'foobar'.");
+        $request = new Request(['addressCountry' => 'foobar']);
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_transforms_the_request_address_country_to_uppercase()
+    {
+        $request = new Request(['addressCountry' => 'nl']);
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withAddressCountry(new Country(CountryCode::fromNative('NL')));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
         $this->controller->search($request);
     }
 }

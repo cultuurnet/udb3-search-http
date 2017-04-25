@@ -22,6 +22,8 @@ use CultuurNet\UDB3\Search\Region\RegionId;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use ValueObjects\Geography\Country;
+use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 
@@ -185,6 +187,21 @@ class OfferSearchController
         if (!empty($postalCode)) {
             $parameters = $parameters->withPostalCode(
                 new PostalCode($postalCode)
+            );
+        }
+
+        if (!empty($request->query->get('addressCountry'))) {
+            $requestedCountry = $request->query->get('addressCountry');
+            $upperCasedCountry = strtoupper((string) $requestedCountry);
+
+            try {
+                $countryCode = CountryCode::fromNative($upperCasedCountry);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Unknown country code '{$requestedCountry}'.");
+            }
+
+            $parameters = $parameters->withAddressCountry(
+                new Country($countryCode)
             );
         }
 
