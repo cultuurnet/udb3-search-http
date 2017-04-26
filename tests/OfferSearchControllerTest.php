@@ -95,7 +95,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_returns_a_paged_collection_of_search_results_based_on_request_query_parameters()
     {
-        $request = new Request(
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
             [
                 'start' => 30,
                 'limit' => 10,
@@ -103,6 +105,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'id' => '42926044-09f4-4bd5-bc35-427b2fc1a525',
                 'locationId' => '652ab95e-fdff-41ce-8894-1b29dce0d230',
                 'organizerId' => '392168d7-57c9-4488-8e2e-d492c843054b',
+                'availableFrom' => '2017-04-26T00:00:00+01:00',
+                'availableTo' => '2017-04-28T15:30:23+01:00',
                 'workflowStatus' => 'DRAFT',
                 'regionId' => 'gem-leuven',
                 'coordinates' => '-40,70',
@@ -142,6 +146,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withOrganizerCdbid(
                 new Cdbid('392168d7-57c9-4488-8e2e-d492c843054b')
+            )
+            ->withAvailableFrom(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T00:00:00+01:00')
+            )
+            ->withAvailableTo(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-28T15:30:23+01:00')
             )
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
@@ -285,10 +295,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_uses_the_default_limit_of_30_if_a_limit_of_0_is_given()
     {
-        $request = new Request(
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
             [
                 'start' => 0,
                 'limit' => 0,
+                'availableFrom' => '*',
+                'availableTo' => '*',
             ]
         );
 
@@ -309,12 +323,40 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
+    public function it_sets_a_default_available_from_and_available_to_if_none_are_given()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [],
+            [],
+            [],
+            ['REQUEST_TIME' => 1493195661]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withAvailableFrom(\DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'))
+            ->withAvailableTo(\DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
     public function it_throws_an_exception_if_coordinates_is_given_without_distance()
     {
-        $request = new Request(
-            [
-                'coordinates' => '-40,70',
-            ]
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            ['coordinates' => '-40,70']
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -328,10 +370,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_throws_an_exception_if_distance_is_given_without_coordinates()
     {
-        $request = new Request(
-            [
-                'distance' => '30km',
-            ]
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            ['distance' => '30km']
         );
 
         $this->expectException(\InvalidArgumentException::class);
@@ -345,10 +387,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_works_with_a_min_age_of_zero_and_or_a_max_age_of_zero()
     {
-        $request = new Request(
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
             [
                 'start' => 0,
                 'limit' => 0,
+                'availableFrom' => '*',
+                'availableTo' => '*',
                 'minAge' => 0,
                 'maxAge' => 0,
             ]
@@ -393,10 +439,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             $pagedCollectionFactory
         );
 
-        $request = new Request(
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
             [
                 'start' => 0,
                 'limit' => 30,
+                'availableFrom' => '*',
+                'availableTo' => '*',
                 'embed' => $embedParameter,
             ]
         );
@@ -463,10 +513,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_can_handle_a_single_string_value_for_parameters_that_are_normally_arrays()
     {
-        $request = new Request(
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
             [
                 'start' => 30,
                 'limit' => 10,
+                'availableFrom' => '*',
+                'availableTo' => '*',
                 'labels' => 'foo',
                 'organizerLabels' => 'bar',
                 'locationLabels' => 'baz',
@@ -507,7 +561,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Unknown facet name 'bla'.");
-        $request = new Request(['facets' => ['regions', 'bla']]);
+        $request = Request::create('http://search.uitdatabank.be/offers/', 'GET', ['facets' => ['regions', 'bla']]);
         $this->controller->search($request);
     }
 
@@ -518,7 +572,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Unknown country code 'foobar'.");
-        $request = new Request(['addressCountry' => 'foobar']);
+        $request = Request::create('http://search.uitdatabank.be/offers/', 'GET', ['addressCountry' => 'foobar']);
         $this->controller->search($request);
     }
 
@@ -527,7 +581,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_transforms_the_request_address_country_to_uppercase()
     {
-        $request = new Request(['addressCountry' => 'nl']);
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'availableFrom' => '*',
+                'availableTo' => '*',
+                'addressCountry' => 'nl'
+            ]
+        );
 
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withAddressCountry(new Country(CountryCode::fromNative('NL')));

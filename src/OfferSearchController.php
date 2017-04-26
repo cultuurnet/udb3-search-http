@@ -153,6 +153,16 @@ class OfferSearchController
             );
         }
 
+        $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
+        if ($availableFrom instanceof \DateTimeImmutable) {
+            $parameters = $parameters->withAvailableFrom($availableFrom);
+        }
+
+        $availableTo = $this->getAvailabilityFromQuery($request, 'availableTo');
+        if ($availableTo instanceof \DateTimeImmutable) {
+            $parameters = $parameters->withAvailableTo($availableTo);
+        }
+
         if (!empty($request->query->get('workflowStatus'))) {
             $parameters = $parameters->withWorkflowStatus(
                 new WorkflowStatus($request->query->get('workflowStatus'))
@@ -307,6 +317,37 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return \DateTimeImmutable|null
+     */
+    private function getAvailabilityFromQuery(Request $request, $queryParameter)
+    {
+        $availability = $request->query->get($queryParameter, false);
+
+        if (!$availability) {
+            // Default value is the time the request was made.
+            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
+        }
+
+        if ($availability === '*') {
+            // A wildcard means the consumer wants to disable the filter
+            // completely instead of changing the default value.
+            return null;
+        }
+
+        $availabilityAsDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $availability);
+
+        if (!$availabilityAsDateTime) {
+            throw new \InvalidArgumentException(
+                "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
+            );
+        }
+
+        return $availabilityAsDateTime;
     }
 
     /**
