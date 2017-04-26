@@ -301,8 +301,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 0,
                 'limit' => 0,
-                'availableFrom' => '*',
-                'availableTo' => '*',
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
             ]
         );
 
@@ -393,8 +393,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 0,
                 'limit' => 0,
-                'availableFrom' => '*',
-                'availableTo' => '*',
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
                 'minAge' => 0,
                 'maxAge' => 0,
             ]
@@ -445,8 +445,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 0,
                 'limit' => 30,
-                'availableFrom' => '*',
-                'availableTo' => '*',
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
                 'embed' => $embedParameter,
             ]
         );
@@ -519,8 +519,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 30,
                 'limit' => 10,
-                'availableFrom' => '*',
-                'availableTo' => '*',
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
                 'labels' => 'foo',
                 'organizerLabels' => 'bar',
                 'locationLabels' => 'baz',
@@ -585,8 +585,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             'http://search.uitdatabank.be/offers/',
             'GET',
             [
-                'availableFrom' => '*',
-                'availableTo' => '*',
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
                 'addressCountry' => 'nl'
             ]
         );

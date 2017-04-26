@@ -30,6 +30,13 @@ use ValueObjects\StringLiteral\StringLiteral;
 class OfferSearchController
 {
     /**
+     * Used to reset filters with default values.
+     * Eg., countryCode is default BE but can be reset by specifying
+     * ?countryCode=*
+     */
+    const QUERY_PARAMETER_RESET_VALUE = '*';
+
+    /**
      * @var OfferSearchServiceInterface
      */
     private $searchService;
@@ -333,9 +340,8 @@ class OfferSearchController
             return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
         }
 
-        if ($availability === '*') {
-            // A wildcard means the consumer wants to disable the filter
-            // completely instead of changing the default value.
+        if ($availability === self::QUERY_PARAMETER_RESET_VALUE) {
+            // Disable the filter instead of using a default or specific value.
             return null;
         }
 
