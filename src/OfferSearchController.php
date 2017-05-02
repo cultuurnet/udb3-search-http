@@ -30,6 +30,13 @@ use ValueObjects\StringLiteral\StringLiteral;
 class OfferSearchController
 {
     /**
+     * Used to reset filters with default values.
+     * Eg., countryCode is default BE but can be reset by specifying
+     * ?countryCode=*
+     */
+    const QUERY_PARAMETER_RESET_VALUE = '*';
+
+    /**
      * @var OfferSearchServiceInterface
      */
     private $searchService;
@@ -151,6 +158,16 @@ class OfferSearchController
             $parameters = $parameters->withOrganizerCdbid(
                 new Cdbid($request->query->get('organizerId'))
             );
+        }
+
+        $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
+        if ($availableFrom instanceof \DateTimeImmutable) {
+            $parameters = $parameters->withAvailableFrom($availableFrom);
+        }
+
+        $availableTo = $this->getAvailabilityFromQuery($request, 'availableTo');
+        if ($availableTo instanceof \DateTimeImmutable) {
+            $parameters = $parameters->withAvailableTo($availableTo);
         }
 
         if (!empty($request->query->get('workflowStatus'))) {
@@ -343,6 +360,29 @@ class OfferSearchController
         }
 
         return $asDateTime;
+    }
+
+    /**
+     * @param Request $request
+     * @param $queryParameter
+     * @return \DateTimeImmutable|null
+     */
+    private function getAvailabilityFromQuery(Request $request, $queryParameter)
+    {
+        // Ignore availability of a wildcard is given.
+        if ($request->query->get($queryParameter, false) === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
+            return null;
+        }
+
+        // Parse availability as a datetime.
+        $availability = $this->getDateTimeFromQuery($request, $queryParameter);
+
+        // If no availability was found use the request time as the default.
+        if (is_null($availability)) {
+            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
+        }
+
+        return $availability;
     }
 
     /**
