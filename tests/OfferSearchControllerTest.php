@@ -351,6 +351,30 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
+    public function it_expects_a_valid_available_from_and_available_to_date()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'start' => 0,
+                'limit' => 0,
+                'availableFrom' => '2017-04-01',
+                'availableTo' => '2017-04-01',
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage(
+            'availableFrom should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00'
+        );
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
     public function it_throws_an_exception_if_coordinates_is_given_without_distance()
     {
         $request = Request::create(
