@@ -30,6 +30,13 @@ use ValueObjects\StringLiteral\StringLiteral;
 class OfferSearchController
 {
     /**
+     * Used to reset filters with default values.
+     * Eg., countryCode is default BE but can be reset by specifying
+     * ?countryCode=*
+     */
+    const QUERY_PARAMETER_RESET_VALUE = '*';
+
+    /**
      * @var OfferSearchServiceInterface
      */
     private $searchService;
@@ -151,6 +158,16 @@ class OfferSearchController
             $parameters = $parameters->withOrganizerCdbid(
                 new Cdbid($request->query->get('organizerId'))
             );
+        }
+
+        $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
+        if ($availableFrom instanceof \DateTimeImmutable) {
+            $parameters = $parameters->withAvailableFrom($availableFrom);
+        }
+
+        $availableTo = $this->getAvailabilityFromQuery($request, 'availableTo');
+        if ($availableTo instanceof \DateTimeImmutable) {
+            $parameters = $parameters->withAvailableTo($availableTo);
         }
 
         if (!empty($request->query->get('workflowStatus'))) {
@@ -307,6 +324,36 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return \DateTimeImmutable|null
+     */
+    private function getAvailabilityFromQuery(Request $request, $queryParameter)
+    {
+        $availability = $request->query->get($queryParameter, false);
+
+        if (!$availability) {
+            // Default value is the time the request was made.
+            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
+        }
+
+        if ($availability === self::QUERY_PARAMETER_RESET_VALUE) {
+            // Disable the filter instead of using a default or specific value.
+            return null;
+        }
+
+        $availabilityAsDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $availability);
+
+        if (!$availabilityAsDateTime) {
+            throw new \InvalidArgumentException(
+                "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
+            );
+        }
+
+        return $availabilityAsDateTime;
     }
 
     /**
