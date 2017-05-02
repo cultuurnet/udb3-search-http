@@ -246,6 +246,16 @@ class OfferSearchController
             );
         }
 
+        $dateFrom = $this->getDateTimeFromQuery($request, 'dateFrom');
+        if ($dateFrom) {
+            $parameters = $parameters->withDateFrom($dateFrom);
+        }
+
+        $dateTo = $this->getDateTimeFromQuery($request, 'dateTo');
+        if ($dateTo) {
+            $parameters = $parameters->withDateTo($dateTo);
+        }
+
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
         if (!empty($termIds)) {
             $parameters = $parameters->withTermIds(...$termIds);
@@ -307,6 +317,32 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return \DateTimeImmutable|null
+     */
+    private function getDateTimeFromQuery(Request $request, $queryParameter)
+    {
+        $asMixed = $request->query->get($queryParameter, null);
+
+        if (is_null($asMixed)) {
+            return null;
+        }
+
+        $asString = (string) $asMixed;
+
+        $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
+
+        if (!$asDateTime) {
+            throw new \InvalidArgumentException(
+                "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
+            );
+        }
+
+        return $asDateTime;
     }
 
     /**
