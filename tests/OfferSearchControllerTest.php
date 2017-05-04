@@ -124,6 +124,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerLabels' => ['ipsum'],
                 'textLanguages' => ['nl', 'en'],
                 'languages' => ['nl', 'en', 'fr'],
+                'dateFrom' => '2017-05-01T00:00:00+01:00',
+                'dateTo' => '2017-05-01T23:59:59+01:00',
                 'termIds' => ['1.45.678.95', 'azYBznHY'],
                 'termLabels' => ['Jeugdhuis', 'Cultureel centrum'],
                 'locationTermIds' => ['1234', '5678'],
@@ -186,6 +188,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new Language('nl'),
                 new Language('en'),
                 new Language('fr')
+            )
+            ->withDateFrom(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T00:00:00+01:00')
+            )
+            ->withDateTo(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T23:59:59+01:00')
             )
             ->withTermIds(
                 new TermId('1.45.678.95'),
@@ -626,5 +634,42 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->willReturn($expectedResultSet);
 
         $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     * @dataProvider malformedDateTimeProvider
+     *
+     * @param string $malformedDateTimeAsString
+     */
+    public function it_throws_an_exception_for_a_malformed_date_from(
+        $malformedDateTimeAsString
+    ) {
+        $request = new Request(['dateFrom' => $malformedDateTimeAsString]);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('dateFrom should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00');
+        $this->controller->search($request);
+    }
+
+    /**
+     * @return array
+     */
+    public function malformedDateTimeProvider()
+    {
+        return [
+            ['2017'],
+            ['2017-01'],
+            ['2017-01-01'],
+            ['2017-01-01T'],
+            ['2017-01-01T23'],
+            ['2017-01-01T23:59'],
+            ['2017-01-01T23:59:59'],
+            [false],
+            [true],
+            [0],
+            [1],
+            ['now'],
+            ['1493726880'],
+        ];
     }
 }

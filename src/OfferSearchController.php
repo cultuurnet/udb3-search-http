@@ -263,6 +263,16 @@ class OfferSearchController
             );
         }
 
+        $dateFrom = $this->getDateTimeFromQuery($request, 'dateFrom');
+        if ($dateFrom) {
+            $parameters = $parameters->withDateFrom($dateFrom);
+        }
+
+        $dateTo = $this->getDateTimeFromQuery($request, 'dateTo');
+        if ($dateTo) {
+            $parameters = $parameters->withDateTo($dateTo);
+        }
+
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
         if (!empty($termIds)) {
             $parameters = $parameters->withTermIds(...$termIds);
@@ -331,29 +341,48 @@ class OfferSearchController
      * @param string $queryParameter
      * @return \DateTimeImmutable|null
      */
-    private function getAvailabilityFromQuery(Request $request, $queryParameter)
+    private function getDateTimeFromQuery(Request $request, $queryParameter)
     {
-        $availability = $request->query->get($queryParameter, false);
+        $asMixed = $request->query->get($queryParameter, null);
 
-        if (!$availability) {
-            // Default value is the time the request was made.
-            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
-        }
-
-        if ($availability === self::QUERY_PARAMETER_RESET_VALUE) {
-            // Disable the filter instead of using a default or specific value.
+        if (is_null($asMixed)) {
             return null;
         }
 
-        $availabilityAsDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $availability);
+        $asString = (string) $asMixed;
 
-        if (!$availabilityAsDateTime) {
+        $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
+
+        if (!$asDateTime) {
             throw new \InvalidArgumentException(
                 "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
             );
         }
 
-        return $availabilityAsDateTime;
+        return $asDateTime;
+    }
+
+    /**
+     * @param Request $request
+     * @param $queryParameter
+     * @return \DateTimeImmutable|null
+     */
+    private function getAvailabilityFromQuery(Request $request, $queryParameter)
+    {
+        // Ignore availability of a wildcard is given.
+        if ($request->query->get($queryParameter, false) === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
+            return null;
+        }
+
+        // Parse availability as a datetime.
+        $availability = $this->getDateTimeFromQuery($request, $queryParameter);
+
+        // If no availability was found use the request time as the default.
+        if (is_null($availability)) {
+            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
+        }
+
+        return $availability;
     }
 
     /**
