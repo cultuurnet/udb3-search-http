@@ -114,7 +114,7 @@ class OfferSearchController
         // The embed option is returned as a string, and casting "false" to a
         // boolean returns true, so we have to do some extra conversion.
         $embedParameter = $request->query->get('embed', false);
-        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
+        $embed = $this->getStringAsBoolean($embedParameter);
 
         if ($limit == 0) {
             $limit = 30;
@@ -263,6 +263,13 @@ class OfferSearchController
             );
         }
 
+        $mediaObjectsToggle = $request->query->get('hasMediaObjects', null);
+        if (!is_null($mediaObjectsToggle)) {
+            $parameters = $parameters->withMediaObjectsToggle(
+                $this->getStringAsBoolean($mediaObjectsToggle)
+            );
+        }
+
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
         if (!empty($termIds)) {
             $parameters = $parameters->withTermIds(...$termIds);
@@ -324,6 +331,15 @@ class OfferSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param string $string
+     * @return bool
+     */
+    private function getStringAsBoolean($string)
+    {
+        return filter_var($string, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
