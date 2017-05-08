@@ -119,6 +119,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'minPrice' => 0.99,
                 'maxPrice' => 1.99,
                 'audienceType' => 'members',
+                'hasMediaObjects' => 'true',
                 'labels' => ['foo', 'bar'],
                 'locationLabels' => ['lorem'],
                 'organizerLabels' => ['ipsum'],
@@ -180,6 +181,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withMinimumPrice(Price::fromFloat(0.99))
             ->withMaximumPrice(Price::fromFloat(1.99))
             ->withAudienceType(new AudienceType('members'))
+            ->withMediaObjectsToggle(true)
             ->withTextLanguages(
                 new Language('nl'),
                 new Language('en')
@@ -450,7 +452,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
-     * @dataProvider embedParameterDataProvider
+     * @dataProvider booleanStringDataProvider
      *
      * @param mixed $embedParameter
      * @param bool $expectedEmbedParameter
@@ -508,9 +510,43 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @test
+     * @dataProvider booleanStringDataProvider
+     *
+     * @param string $stringValue
+     * @param bool $booleanValue
+     */
+    public function it_converts_the_media_objects_toggle_parameter_to_a_correct_boolean(
+        $stringValue,
+        $booleanValue
+    ) {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'hasMediaObjects' => $stringValue,
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withMediaObjectsToggle($booleanValue);
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
      * @return Request[]
      */
-    public function embedParameterDataProvider()
+    public function booleanStringDataProvider()
     {
         return [
             [
