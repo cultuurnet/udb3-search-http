@@ -10,6 +10,7 @@ use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
+use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
@@ -267,6 +268,12 @@ class OfferSearchController
         if (!is_null($mediaObjectsToggle)) {
             $parameters = $parameters->withMediaObjectsToggle(
                 $this->getStringAsBoolean($mediaObjectsToggle)
+            );
+        }
+
+        if ($request->query->get('calendarType')) {
+            $parameters = $parameters->withCalendarType(
+                new CalendarType($request->query->get('calendarType'))
             );
         }
 
