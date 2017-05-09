@@ -15,6 +15,7 @@ use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
+use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
@@ -125,6 +126,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerLabels' => ['ipsum'],
                 'textLanguages' => ['nl', 'en'],
                 'languages' => ['nl', 'en', 'fr'],
+                'calendarType' => 'single',
                 'dateFrom' => '2017-05-01T00:00:00+01:00',
                 'dateTo' => '2017-05-01T23:59:59+01:00',
                 'termIds' => ['1.45.678.95', 'azYBznHY'],
@@ -190,6 +192,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new Language('nl'),
                 new Language('en'),
                 new Language('fr')
+            )
+            ->withCalendarType(
+                new CalendarType('single')
             )
             ->withDateFrom(
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T00:00:00+01:00')
