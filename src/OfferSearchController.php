@@ -307,6 +307,13 @@ class OfferSearchController
             $parameters = $parameters->withLocationTermLabels(...$locationTermLabels);
         }
 
+        $uitpasToggle = $request->query->get('uitpas', null);
+        if (!is_null($uitpasToggle)) {
+            $parameters = $parameters->withUitpasToggle(
+                $this->getStringAsBoolean($uitpasToggle)
+            );
+        }
+
         $labels = $this->getLabelsFromQuery($request, 'labels');
         if (!empty($labels)) {
             $parameters = $parameters->withLabels(...$labels);
