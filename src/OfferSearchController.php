@@ -13,6 +13,7 @@ use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
+use CultuurNet\UDB3\Search\Offer\MetaDataDateType;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
@@ -327,6 +328,8 @@ class OfferSearchController
             $parameters = $parameters->withFacets(...$facets);
         }
 
+        $parameters = $this->includeMetadataDateParameters($parameters, $request);
+
         $resultSet = $this->searchService->search($parameters);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
@@ -512,5 +515,33 @@ class OfferSearchController
         }
 
         return $values;
+    }
+
+    /**
+     * @param OfferSearchParameters $parameters
+     * @return OfferSearchParameters
+     */
+    private function includeMetadataDateParameters(OfferSearchParameters $parameters, Request $request)
+    {
+        $parameterNames = array_reduce(
+            MetaDataDateType::getConstants(),
+            function ($parameterNames, $dateType) {
+                return $parameterNames + [$dateType . 'From', $dateType . 'To'];
+            },
+            []
+        );
+
+        return array_reduce(
+            $parameterNames,
+            function (OfferSearchParameters $parameters, $parameterName) use ($request) {
+                $parameter = $this->getDateTimeFromQuery($request, $parameterName);
+                if ($parameter) {
+                    $parameters->{'with' . ucfirst($parameterName)}($parameter);
+                }
+
+                return $parameters;
+            },
+            $parameters
+        );
     }
 }
