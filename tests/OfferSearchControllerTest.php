@@ -523,7 +523,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @dataProvider booleanStringDataProvider
      *
      * @param string $stringValue
-     * @param bool $booleanValue
+     * @param bool|null $booleanValue
      */
     public function it_converts_the_media_objects_toggle_parameter_to_a_correct_boolean(
         $stringValue,
@@ -539,8 +539,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withMediaObjectsToggle($booleanValue);
+        $expectedSearchParameters = (new OfferSearchParameters());
+
+        if (!is_null($booleanValue)) {
+            $expectedSearchParameters = $expectedSearchParameters
+                ->withMediaObjectsToggle($booleanValue);
+        }
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -557,7 +561,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @dataProvider booleanStringDataProvider
      *
      * @param string $stringValue
-     * @param bool $booleanValue
+     * @param bool|null $booleanValue
      */
     public function it_converts_the_uitpas_toggle_parameter_to_a_correct_boolean(
         $stringValue,
@@ -573,8 +577,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withUitpasToggle($booleanValue);
+        $expectedSearchParameters = (new OfferSearchParameters());
+
+        if (!is_null($booleanValue)) {
+            $expectedSearchParameters = $expectedSearchParameters
+                ->withUitpasToggle($booleanValue);
+        }
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -593,6 +601,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [
+                false,
+                false,
+            ],
+            [
+                true,
+                true,
+            ],
+            [
                 'false',
                 false,
             ],
@@ -605,6 +621,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 false,
             ],
             [
+                0,
+                false,
+            ],
+            [
                 'true',
                 true,
             ],
@@ -614,7 +634,19 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ],
             [
                 '1',
-                true
+                true,
+            ],
+            [
+                1,
+                true,
+            ],
+            [
+                '',
+                null,
+            ],
+            [
+                null,
+                null,
             ],
         ];
     }

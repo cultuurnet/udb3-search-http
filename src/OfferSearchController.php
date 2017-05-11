@@ -115,7 +115,7 @@ class OfferSearchController
         // The embed option is returned as a string, and casting "false" to a
         // boolean returns true, so we have to do some extra conversion.
         $embedParameter = $request->query->get('embed', false);
-        $embed = $this->getStringAsBoolean($embedParameter);
+        $embed = $this->castMixedToBool($embedParameter);
 
         if ($limit == 0) {
             $limit = 30;
@@ -265,10 +265,9 @@ class OfferSearchController
         }
 
         $mediaObjectsToggle = $request->query->get('hasMediaObjects', null);
-        if (!is_null($mediaObjectsToggle)) {
-            $parameters = $parameters->withMediaObjectsToggle(
-                $this->getStringAsBoolean($mediaObjectsToggle)
-            );
+        if (!is_null($mediaObjectsToggle) &&
+            $mediaObjectsToggle = $this->castMixedToBool($mediaObjectsToggle)) {
+            $parameters = $parameters->withMediaObjectsToggle($mediaObjectsToggle);
         }
 
         if ($request->query->get('calendarType')) {
@@ -308,10 +307,8 @@ class OfferSearchController
         }
 
         $uitpasToggle = $request->query->get('uitpas', null);
-        if (!is_null($uitpasToggle)) {
-            $parameters = $parameters->withUitpasToggle(
-                $this->getStringAsBoolean($uitpasToggle)
-            );
+        if (!is_null($uitpasToggle) && $uitpasToggle = $this->castMixedToBool($uitpasToggle)) {
+            $parameters = $parameters->withUitpasToggle($uitpasToggle);
         }
 
         $labels = $this->getLabelsFromQuery($request, 'labels');
@@ -358,12 +355,24 @@ class OfferSearchController
     }
 
     /**
-     * @param string $string
-     * @return bool
+     * @param mixed $mixed
+     * @return bool|null
      */
-    private function getStringAsBoolean($string)
+    private function castMixedToBool($mixed)
     {
-        return filter_var($string, FILTER_VALIDATE_BOOLEAN);
+        if (is_bool($mixed)) {
+            return $mixed;
+        }
+
+        if (is_int($mixed)) {
+            return (bool) $mixed;
+        }
+
+        if (is_null($mixed) || (is_string($mixed) && empty($mixed))) {
+            return null;
+        }
+
+        return filter_var($mixed, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
