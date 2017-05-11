@@ -15,11 +15,14 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\SortBy;
+use CultuurNet\UDB3\Search\Offer\Sorting;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use CultuurNet\UDB3\Search\Region\RegionId;
+use CultuurNet\UDB3\Search\SortOrder;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -330,6 +333,11 @@ class OfferSearchController
             $parameters = $parameters->withFacets(...$facets);
         }
 
+        $sorting = $this->getSortingFromQuery($request, 'sort');
+        if (!empty($sorting)) {
+            $parameters = $parameters->withSorting(...$sorting);
+        }
+
         $resultSet = $this->searchService->search($parameters);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
@@ -497,6 +505,47 @@ class OfferSearchController
                 }
             }
         );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return Sorting[]
+     * @throws \InvalidArgumentException
+     */
+    private function getSortingFromQuery(Request $request, $queryParameter)
+    {
+        $sorting = $request->query->get($queryParameter, []);
+
+        if (!is_array($sorting)) {
+            throw new \InvalidArgumentException('Invalid sorting syntax given.');
+        }
+
+        foreach ($sorting as $field => $order) {
+            if (is_int($field)) {
+                throw new \InvalidArgumentException('Sort field missing.');
+            }
+
+            if (empty($order)) {
+                throw new \InvalidArgumentException('Sort order missing.');
+            }
+
+            try {
+                $sortBy = SortBy::get($field);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
+            }
+
+            try {
+                $sortOrder = SortOrder::get($order);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
+            }
+
+            $sorting[$field] = new Sorting($sortBy, $sortOrder);
+        }
+
+        return array_values($sorting);
     }
 
     /**

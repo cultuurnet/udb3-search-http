@@ -20,11 +20,14 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\SortBy;
+use CultuurNet\UDB3\Search\Offer\Sorting;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use CultuurNet\UDB3\Search\Region\RegionId;
+use CultuurNet\UDB3\Search\SortOrder;
 use CultuurNet\UDB3\ValueObject\MultilingualString;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Geography\Country;
@@ -137,6 +140,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerTermIds' => ['9012', '3456'],
                 'organizerTermLabels' => ['foo2', 'bar2'],
                 'facets' => ['regions'],
+                'sort' => [
+                    'availableTo' => 'asc',
+                    'score' => 'desc',
+                ],
             ]
         );
 
@@ -234,6 +241,16 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withFacets(
                 FacetName::REGIONS()
+            )
+            ->withSorting(
+                new Sorting(
+                    SortBy::AVAILABLE_TO(),
+                    SortOrder::ASC()
+                ),
+                new Sorting(
+                    SortBy::SCORE(),
+                    SortOrder::DESC()
+                )
             )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
@@ -723,5 +740,111 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ['now'],
             ['1493726880'],
         ];
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_sort_is_not_an_array()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => 'availableTo asc'
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid sorting syntax given.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_field_is_invalid()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'availableTo' => 'asc',
+                    'name.nl' => 'asc',
+                    'score' => 'desc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid sort field 'name.nl' given.");
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_order_is_invalid()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'availableTo' => 'ascending',
+                    'score' => 'descending',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid sort order 'ascending' given.");
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_field_is_missing()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'asc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Sort field missing.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_order_is_missing()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'availableTo' => '',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Sort order missing.');
+
+        $this->controller->search($request);
     }
 }
