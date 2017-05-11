@@ -7,6 +7,7 @@ use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
+use CultuurNet\UDB3\Search\CreatedBy;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
@@ -331,6 +332,12 @@ class OfferSearchController
         $facets = $this->getFacetsFromQuery($request, 'facets');
         if (!empty($facets)) {
             $parameters = $parameters->withFacets(...$facets);
+        }
+
+        if ($request->query->get('createdBy')) {
+            $parameters = $parameters->withCreatedBy(
+                new CreatedBy($request->query->get('createdBy'))
+            );
         }
 
         $sorting = $this->getSortingFromQuery($request, 'sort');

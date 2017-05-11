@@ -11,6 +11,7 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
+use CultuurNet\UDB3\Search\CreatedBy;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
@@ -140,6 +141,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerTermIds' => ['9012', '3456'],
                 'organizerTermLabels' => ['foo2', 'bar2'],
                 'facets' => ['regions'],
+                'createdBy' => 'Jane Doe',
                 'sort' => [
                     'availableTo' => 'asc',
                     'score' => 'desc',
@@ -241,6 +243,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withFacets(
                 FacetName::REGIONS()
+            )
+            ->withCreatedBy(
+                new CreatedBy('Jane Doe')
             )
             ->withSorting(
                 new Sorting(
