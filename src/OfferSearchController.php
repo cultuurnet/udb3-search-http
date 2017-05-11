@@ -264,10 +264,14 @@ class OfferSearchController
             );
         }
 
-        $mediaObjectsToggle = $request->query->get('hasMediaObjects', null);
-        if (!is_null($mediaObjectsToggle) &&
-            $mediaObjectsToggle = $this->castMixedToBool($mediaObjectsToggle)) {
+        $mediaObjectsToggle = $this->castMixedToBool($request->query->get('hasMediaObjects', null));
+        if (!is_null($mediaObjectsToggle)) {
             $parameters = $parameters->withMediaObjectsToggle($mediaObjectsToggle);
+        }
+
+        $uitpasToggle = $this->castMixedToBool($request->query->get('uitpas', null));
+        if (!is_null($uitpasToggle)) {
+            $parameters = $parameters->withUitpasToggle($uitpasToggle);
         }
 
         if ($request->query->get('calendarType')) {
@@ -304,11 +308,6 @@ class OfferSearchController
         $locationTermLabels = $this->getTermLabelsFromQuery($request, 'locationTermLabels');
         if (!empty($locationTermLabels)) {
             $parameters = $parameters->withLocationTermLabels(...$locationTermLabels);
-        }
-
-        $uitpasToggle = $request->query->get('uitpas', null);
-        if (!is_null($uitpasToggle) && $uitpasToggle = $this->castMixedToBool($uitpasToggle)) {
-            $parameters = $parameters->withUitpasToggle($uitpasToggle);
         }
 
         $labels = $this->getLabelsFromQuery($request, 'labels');
@@ -360,14 +359,6 @@ class OfferSearchController
      */
     private function castMixedToBool($mixed)
     {
-        if (is_bool($mixed)) {
-            return $mixed;
-        }
-
-        if (is_int($mixed)) {
-            return (bool) $mixed;
-        }
-
         if (is_null($mixed) || (is_string($mixed) && empty($mixed))) {
             return null;
         }
