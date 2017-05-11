@@ -91,7 +91,7 @@ class OfferSearchController
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new PagedCollectionFactory();
+            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
         $this->searchService = $searchService;
@@ -335,8 +335,7 @@ class OfferSearchController
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit,
-            $embed
+            $limit
         );
 
         $jsonArray = $pagedCollection->jsonSerialize();

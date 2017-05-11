@@ -32,7 +32,7 @@ class OrganizerSearchController
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new PagedCollectionFactory();
+            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
         $this->searchService = $searchService;
@@ -78,8 +78,7 @@ class OrganizerSearchController
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit,
-            $embed
+            $limit
         );
 
         return (new JsonResponse($pagedCollection, 200, ['Content-Type' => 'application/ld+json']))
