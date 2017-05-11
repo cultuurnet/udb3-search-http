@@ -132,6 +132,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'termIds' => ['1.45.678.95', 'azYBznHY'],
                 'termLabels' => ['Jeugdhuis', 'Cultureel centrum'],
                 'locationTermIds' => ['1234', '5678'],
+                'uitpas' => 'true',
                 'locationTermLabels' => ['foo1', 'bar1'],
                 'organizerTermIds' => ['9012', '3456'],
                 'organizerTermLabels' => ['foo2', 'bar2'],
@@ -217,6 +218,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLocationTermLabels(
                 new TermLabel('foo1'),
                 new TermLabel('bar1')
+            )
+            ->withUitpasToggle(
+                true
             )
             ->withLabels(
                 new LabelName('foo'),
@@ -519,7 +523,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @dataProvider booleanStringDataProvider
      *
      * @param string $stringValue
-     * @param bool $booleanValue
+     * @param bool|null $booleanValue
      */
     public function it_converts_the_media_objects_toggle_parameter_to_a_correct_boolean(
         $stringValue,
@@ -535,8 +539,50 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withMediaObjectsToggle($booleanValue);
+        $expectedSearchParameters = (new OfferSearchParameters());
+
+        if (!is_null($booleanValue)) {
+            $expectedSearchParameters = $expectedSearchParameters
+                ->withMediaObjectsToggle($booleanValue);
+        }
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     * @dataProvider booleanStringDataProvider
+     *
+     * @param string $stringValue
+     * @param bool|null $booleanValue
+     */
+    public function it_converts_the_uitpas_toggle_parameter_to_a_correct_boolean(
+        $stringValue,
+        $booleanValue
+    ) {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'uitpas' => $stringValue,
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters());
+
+        if (!is_null($booleanValue)) {
+            $expectedSearchParameters = $expectedSearchParameters
+                ->withUitpasToggle($booleanValue);
+        }
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -555,6 +601,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [
+                false,
+                false,
+            ],
+            [
+                true,
+                true,
+            ],
+            [
                 'false',
                 false,
             ],
@@ -567,6 +621,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 false,
             ],
             [
+                0,
+                false,
+            ],
+            [
                 'true',
                 true,
             ],
@@ -576,7 +634,19 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ],
             [
                 '1',
-                true
+                true,
+            ],
+            [
+                1,
+                true,
+            ],
+            [
+                '',
+                null,
+            ],
+            [
+                null,
+                null,
             ],
         ];
     }

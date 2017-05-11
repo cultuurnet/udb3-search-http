@@ -115,7 +115,7 @@ class OfferSearchController
         // The embed option is returned as a string, and casting "false" to a
         // boolean returns true, so we have to do some extra conversion.
         $embedParameter = $request->query->get('embed', false);
-        $embed = $this->getStringAsBoolean($embedParameter);
+        $embed = $this->castMixedToBool($embedParameter);
 
         if ($limit == 0) {
             $limit = 30;
@@ -264,11 +264,14 @@ class OfferSearchController
             );
         }
 
-        $mediaObjectsToggle = $request->query->get('hasMediaObjects', null);
+        $mediaObjectsToggle = $this->castMixedToBool($request->query->get('hasMediaObjects', null));
         if (!is_null($mediaObjectsToggle)) {
-            $parameters = $parameters->withMediaObjectsToggle(
-                $this->getStringAsBoolean($mediaObjectsToggle)
-            );
+            $parameters = $parameters->withMediaObjectsToggle($mediaObjectsToggle);
+        }
+
+        $uitpasToggle = $this->castMixedToBool($request->query->get('uitpas', null));
+        if (!is_null($uitpasToggle)) {
+            $parameters = $parameters->withUitpasToggle($uitpasToggle);
         }
 
         if ($request->query->get('calendarType')) {
@@ -351,12 +354,16 @@ class OfferSearchController
     }
 
     /**
-     * @param string $string
-     * @return bool
+     * @param mixed $mixed
+     * @return bool|null
      */
-    private function getStringAsBoolean($string)
+    private function castMixedToBool($mixed)
     {
-        return filter_var($string, FILTER_VALIDATE_BOOLEAN);
+        if (is_null($mixed) || (is_string($mixed) && empty($mixed))) {
+            return null;
+        }
+
+        return filter_var($mixed, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
