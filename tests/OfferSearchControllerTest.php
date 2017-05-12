@@ -162,6 +162,18 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withAvailableTo(
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-28T15:30:23+01:00')
             )
+            ->withCreatedFrom(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
+            ->withCreatedTo(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
+            ->withModifiedFrom(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
+            ->withModifiedTo(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
             )

@@ -526,7 +526,7 @@ class OfferSearchController
         $parameterNames = array_reduce(
             MetaDataDateType::getConstants(),
             function ($parameterNames, $dateType) {
-                return $parameterNames + [$dateType . 'From', $dateType . 'To'];
+                return array_merge_recursive($parameterNames, [$dateType . 'From', $dateType . 'To']);
             },
             []
         );
@@ -535,11 +535,7 @@ class OfferSearchController
             $parameterNames,
             function (OfferSearchParameters $parameters, $parameterName) use ($request) {
                 $parameter = $this->getDateTimeFromQuery($request, $parameterName);
-                if ($parameter) {
-                    $parameters->{'with' . ucfirst($parameterName)}($parameter);
-                }
-
-                return $parameters;
+                return $parameter ? $parameters->{'with' . ucfirst($parameterName)}($parameter) : $parameters;
             },
             $parameters
         );
