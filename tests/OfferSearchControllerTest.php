@@ -911,4 +911,33 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $this->controller->search($request);
     }
+
+    /**
+     * @test
+     */
+    public function it_should_use_default_parameters_when_default_filters_are_disabled()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => false
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters())
+            ->withAddressCountry(new Country(CountryCode::fromNative('BE')))
+            ->withWorkflowStatus(new WorkflowStatus('READY_FOR_VALIDATION + APPROVED'));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
 }

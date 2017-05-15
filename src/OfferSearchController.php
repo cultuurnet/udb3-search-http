@@ -31,6 +31,7 @@ use ValueObjects\Geography\Country;
 use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
+use Zend\Validator\File\Count;
 
 class OfferSearchController
 {
@@ -175,11 +176,8 @@ class OfferSearchController
             $parameters = $parameters->withAvailableTo($availableTo);
         }
 
-        if (!empty($request->query->get('workflowStatus'))) {
-            $parameters = $parameters->withWorkflowStatus(
-                new WorkflowStatus($request->query->get('workflowStatus'))
-            );
-        }
+        $workflowStatus = $this->getWorkflowStatusFromQuery($request);
+        $parameters = empty($workflowStatus) ? $parameters : $parameters->withWorkflowStatus($workflowStatus);
 
         if (!empty($request->query->get('regionId'))) {
             $parameters = $parameters->withRegion(
@@ -212,20 +210,8 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('addressCountry'))) {
-            $requestedCountry = $request->query->get('addressCountry');
-            $upperCasedCountry = strtoupper((string) $requestedCountry);
-
-            try {
-                $countryCode = CountryCode::fromNative($upperCasedCountry);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Unknown country code '{$requestedCountry}'.");
-            }
-
-            $parameters = $parameters->withAddressCountry(
-                new Country($countryCode)
-            );
-        }
+        $country = $this->getAddressCountryFromQuery($request);
+        $parameters = empty($country) ? $parameters : $parameters->withAddressCountry($country);
 
         // Do strict comparison to make sure 0 gets included.
         if ($request->query->get('minAge', false) !== false) {
@@ -575,5 +561,56 @@ class OfferSearchController
         }
 
         return $values;
+    }
+
+    /**
+     * @param Request $request
+     * @return null|Country
+     */
+    private function getAddressCountryFromQuery(Request $request)
+    {
+        $queryParameter = $request->query->get('addressCountry');
+        $defaultsDisabled = $this->getDefaultFiltersDisabledFromQuery($request);
+        $parameterReset = OfferSearchController::QUERY_PARAMETER_RESET_VALUE === $queryParameter;
+
+        $default = $defaultsDisabled || $parameterReset ? null : new Country(CountryCode::BE());
+
+        if ($queryParameter) {
+            $upperCasedCountry = strtoupper((string) $queryParameter);
+
+            try {
+                $countryCode = CountryCode::fromNative($upperCasedCountry);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Unknown country code '{$queryParameter}'.");
+            }
+
+            return new Country($countryCode);
+        } else {
+            return $default;
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @return WorkflowStatus|null
+     */
+    private function getWorkflowStatusFromQuery(Request $request)
+    {
+        $queryParameter = $request->query->get('workflowStatus');
+        $defaultsDisabled = $this->getDefaultFiltersDisabledFromQuery($request);
+        $parameterReset = OfferSearchController::QUERY_PARAMETER_RESET_VALUE === $queryParameter;
+
+        $default = $defaultsDisabled || $parameterReset ? null : new WorkflowStatus('READY_FOR_VALIDATION + APPROVED');
+
+        return is_null($queryParameter) ? $default : new WorkflowStatus($queryParameter);
+    }
+
+    /**
+     * @param Request $request
+     * @return bool
+     */
+    private function getDefaultFiltersDisabledFromQuery(Request $request)
+    {
+        return $this->castMixedToBool($request->query->get('disableDefaultFilters', true));
     }
 }
