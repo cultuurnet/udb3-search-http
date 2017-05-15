@@ -600,7 +600,7 @@ class OfferSearchController
         $defaultsDisabled = $this->getDefaultFiltersDisabledFromQuery($request);
         $parameterReset = OfferSearchController::QUERY_PARAMETER_RESET_VALUE === $queryParameter;
 
-        $default = $defaultsDisabled || $parameterReset ? null : new WorkflowStatus('READY_FOR_VALIDATION + APPROVED');
+        $default = $defaultsDisabled || $parameterReset ? null : new WorkflowStatus('APPROVED');
 
         return is_null($queryParameter) ? $default : new WorkflowStatus($queryParameter);
     }

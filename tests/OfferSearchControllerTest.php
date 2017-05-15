@@ -915,7 +915,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function it_should_use_default_parameters_when_default_filters_are_disabled()
+    public function it_should_use_default_parameters_when_default_filters_are_not_disabled()
     {
         $request = Request::create(
             'http://search.uitdatabank.be/offers/',
@@ -929,7 +929,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withAddressCountry(new Country(CountryCode::fromNative('BE')))
-            ->withWorkflowStatus(new WorkflowStatus('READY_FOR_VALIDATION + APPROVED'));
+            ->withWorkflowStatus(new WorkflowStatus('APPROVED'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
