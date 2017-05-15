@@ -95,7 +95,7 @@ class OfferSearchController
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new PagedCollectionFactory();
+            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
         $this->searchService = $searchService;
@@ -115,11 +115,6 @@ class OfferSearchController
     {
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-
-        // The embed option is returned as a string, and casting "false" to a
-        // boolean returns true, so we have to do some extra conversion.
-        $embedParameter = $request->query->get('embed', false);
-        $embed = $this->castMixedToBool($embedParameter);
 
         if ($limit == 0) {
             $limit = 30;
@@ -350,8 +345,7 @@ class OfferSearchController
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit,
-            $embed
+            $limit
         );
 
         $jsonArray = $pagedCollection->jsonSerialize();

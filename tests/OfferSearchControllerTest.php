@@ -485,65 +485,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @test
      * @dataProvider booleanStringDataProvider
      *
-     * @param mixed $embedParameter
-     * @param bool $expectedEmbedParameter
-     */
-    public function it_converts_the_embed_parameter_to_a_correct_boolean_and_passes_it_to_the_paged_collection_factory(
-        $embedParameter,
-        $expectedEmbedParameter
-    ) {
-        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
-
-        $controller = new OfferSearchController(
-            $this->searchService,
-            $this->regionIndexName,
-            $this->regionDocumentType,
-            $this->queryStringFactory,
-            $this->distanceFactory,
-            $this->facetTreeNormalizer,
-            $pagedCollectionFactory
-        );
-
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
-            [
-                'start' => 0,
-                'limit' => 30,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'embed' => $embedParameter,
-            ]
-        );
-
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withStart(new Natural(0))
-            ->withLimit(new Natural(30));
-
-        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
-
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
-
-        $pagedCollectionFactory->expects($this->once())
-            ->method('fromPagedResultSet')
-            ->with(
-                $expectedResultSet,
-                0,
-                30,
-                $expectedEmbedParameter
-            )
-            ->willReturn($this->createMock(PagedCollection::class));
-
-        $controller->search($request);
-    }
-
-    /**
-     * @test
-     * @dataProvider booleanStringDataProvider
-     *
      * @param string $stringValue
      * @param bool|null $booleanValue
      */
