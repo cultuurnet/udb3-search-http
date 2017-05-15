@@ -9,6 +9,7 @@ use GuzzleHttp\Client;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use Psr\Log\LoggerInterface;
 use ValueObjects\Number\Natural;
 
 class JsonLdEmbeddingPagedCollectionFactoryTest extends \PHPUnit_Framework_TestCase
@@ -37,6 +38,11 @@ class JsonLdEmbeddingPagedCollectionFactoryTest extends \PHPUnit_Framework_TestC
      * @var PagedResultSet
      */
     private $pagedResultSet;
+
+    /**
+     * @var LoggerInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $logger;
 
     public function setUp()
     {
@@ -71,6 +77,8 @@ class JsonLdEmbeddingPagedCollectionFactoryTest extends \PHPUnit_Framework_TestC
             new Natural($this->limit),
             $this->jsonDocuments
         );
+
+        $this->logger = $this->createMock(LoggerInterface::class);
     }
 
     /**
@@ -140,8 +148,12 @@ class JsonLdEmbeddingPagedCollectionFactoryTest extends \PHPUnit_Framework_TestC
 
         $factory = new JsonLdEmbeddingPagedCollectionFactory(
             new ResultSetMappingPagedCollectionFactory(),
-            $mockClient
+            $mockClient,
+            $this->logger
         );
+
+        $this->logger->expects($this->never())
+            ->method('error');
 
         $actualPagedCollection = $factory->fromPagedResultSet(
             $this->pagedResultSet,
@@ -168,12 +180,14 @@ class JsonLdEmbeddingPagedCollectionFactoryTest extends \PHPUnit_Framework_TestC
 
         $failedUrl = "http://mock/event/feaae8dc-6eaa-4076-ab3f-5bbbb735494b";
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage("Could not embed document from url {$failedUrl}, received error code 404.");
+        $this->logger->expects($this->once())
+            ->method('error')
+            ->with("Could not embed document from url {$failedUrl}, received error code 404.");
 
         $factory = new JsonLdEmbeddingPagedCollectionFactory(
             new ResultSetMappingPagedCollectionFactory(),
-            $mockClient
+            $mockClient,
+            $this->logger
         );
 
         $factory->fromPagedResultSet(

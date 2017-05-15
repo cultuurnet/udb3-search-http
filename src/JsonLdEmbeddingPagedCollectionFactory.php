@@ -5,9 +5,11 @@ namespace CultuurNet\UDB3\Search\Http;
 use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use GuzzleHttp\ClientInterface;
-use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Promise\Promise;
 use GuzzleHttp\Promise\PromiseInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 
 class JsonLdEmbeddingPagedCollectionFactory implements PagedCollectionFactoryInterface
 {
@@ -22,15 +24,23 @@ class JsonLdEmbeddingPagedCollectionFactory implements PagedCollectionFactoryInt
     private $httpClient;
 
     /**
+     * @var LoggerInterface
+     */
+    private $logger;
+
+    /**
      * @param PagedCollectionFactoryInterface $pagedCollectionFactory
      * @param ClientInterface $httpClient
+     * @param LoggerInterface $logger
      */
     public function __construct(
         PagedCollectionFactoryInterface $pagedCollectionFactory,
-        ClientInterface $httpClient
+        ClientInterface $httpClient,
+        LoggerInterface $logger
     ) {
         $this->pagedCollectionFactory = $pagedCollectionFactory;
         $this->httpClient = $httpClient;
+        $this->logger = $logger;
     }
 
     /**
@@ -51,22 +61,21 @@ class JsonLdEmbeddingPagedCollectionFactory implements PagedCollectionFactoryInt
 
         $jsonLdBodies = [];
 
-        $onResolved = function (array $responses) use (&$jsonLdBodies) {
-            $jsonLdBodies = array_map(
-                function (ResponseInterface $response) {
-                    return json_decode($response->getBody());
-                },
-                $responses
-            );
-        };
+        $results = \GuzzleHttp\Promise\settle($promises)->wait();
 
-        $onRejected = function (RequestException $e) {
-            $url = (string) $e->getRequest()->getUri();
-            $code = (string) $e->getResponse()->getStatusCode();
-            throw new \RuntimeException("Could not embed document from url {$url}, received error code {$code}.");
-        };
+        foreach ($results as $key => $result) {
+            switch ($result['state']) {
+                case Promise::FULFILLED:
+                    /** @var ResponseInterface $response */
+                    $response = $result['value'];
+                    $jsonLdBodies[] = json_decode($response->getBody());
+                    break;
 
-        \GuzzleHttp\Promise\all($promises)->then($onResolved, $onRejected)->wait();
+                default:
+                    $this->logClientException($result['reason']);
+                    break;
+            }
+        }
 
         $merged = $this->mergeResults($members, $jsonLdBodies);
 
@@ -79,18 +88,18 @@ class JsonLdEmbeddingPagedCollectionFactory implements PagedCollectionFactoryInt
      */
     private function getJsonLdRequestPromises(array $members)
     {
-        $promises = array_map(
-            function (\stdClass $body) {
-                if (isset($body->{'@id'})) {
-                    return $this->httpClient->requestAsync('GET', $body->{'@id'});
-                } else {
-                    return null;
-                }
-            },
-            $members
-        );
+        $promises = [];
 
-        return array_filter($promises);
+        foreach ($members as $body) {
+            if (isset($body->{'@id'})) {
+                $promises[$body->{'@id'}] = $this->httpClient->requestAsync(
+                    'GET',
+                    $body->{'@id'}
+                );
+            }
+        }
+
+        return $promises;
     }
 
     /**
@@ -120,5 +129,17 @@ class JsonLdEmbeddingPagedCollectionFactory implements PagedCollectionFactoryInt
         }
 
         return $mergedResults;
+    }
+
+    /**
+     * @param ClientException $exception
+     */
+    private function logClientException(ClientException $exception)
+    {
+        $url = (string) $exception->getRequest()->getUri();
+        $code = (string) $exception->getResponse()->getStatusCode();
+        $message = "Could not embed document from url {$url}, received error code {$code}.";
+
+        $this->logger->error($message);
     }
 }
