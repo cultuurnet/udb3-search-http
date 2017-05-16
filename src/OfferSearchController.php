@@ -288,6 +288,26 @@ class OfferSearchController
             $parameters = $parameters->withDateTo($dateTo);
         }
 
+        $createdFrom = $this->getDateTimeFromQuery($request, 'createdFrom');
+        if ($createdFrom) {
+            $parameters = $parameters->withCreatedFrom($createdFrom);
+        }
+
+        $createdTo = $this->getDateTimeFromQuery($request, 'createdTo');
+        if ($createdTo) {
+            $parameters = $parameters->withCreatedTo($createdTo);
+        }
+
+        $modifiedFrom = $this->getDateTimeFromQuery($request, 'modifiedFrom');
+        if ($modifiedFrom) {
+            $parameters = $parameters->withModifiedFrom($modifiedFrom);
+        }
+
+        $modifiedTo = $this->getDateTimeFromQuery($request, 'modifiedTo');
+        if ($modifiedTo) {
+            $parameters = $parameters->withModifiedTo($modifiedTo);
+        }
+
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
         if (!empty($termIds)) {
             $parameters = $parameters->withTermIds(...$termIds);
@@ -327,8 +347,6 @@ class OfferSearchController
         if (!empty($facets)) {
             $parameters = $parameters->withFacets(...$facets);
         }
-
-        $parameters = $this->includeMetadataDateParameters($parameters, $request);
 
         $resultSet = $this->searchService->search($parameters);
 
@@ -515,29 +533,5 @@ class OfferSearchController
         }
 
         return $values;
-    }
-
-    /**
-     * @param OfferSearchParameters $parameters
-     * @return OfferSearchParameters
-     */
-    private function includeMetadataDateParameters(OfferSearchParameters $parameters, Request $request)
-    {
-        $parameterNames = array_reduce(
-            MetaDataDateType::getConstants(),
-            function ($parameterNames, $dateType) {
-                return array_merge_recursive($parameterNames, [$dateType . 'From', $dateType . 'To']);
-            },
-            []
-        );
-
-        return array_reduce(
-            $parameterNames,
-            function (OfferSearchParameters $parameters, $parameterName) use ($request) {
-                $parameter = $this->getDateTimeFromQuery($request, $parameterName);
-                return $parameter ? $parameters->{'with' . ucfirst($parameterName)}($parameter) : $parameters;
-            },
-            $parameters
-        );
     }
 }
