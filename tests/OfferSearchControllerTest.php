@@ -171,7 +171,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
             )
-            ->withRegion(
+            ->withRegions(
                 $this->regionIndexName,
                 $this->regionDocumentType,
                 new RegionId('gem-leuven'),

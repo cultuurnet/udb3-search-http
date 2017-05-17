@@ -178,7 +178,7 @@ class OfferSearchController
 
         $regionIds = $this->getRegionIdsFromQuery($request, 'regions');
         if (!empty($regionIds)) {
-            $parameters = $parameters->withRegion(
+            $parameters = $parameters->withRegions(
                 $this->regionIndexName,
                 $this->regionDocumentType,
                 ...$regionIds
