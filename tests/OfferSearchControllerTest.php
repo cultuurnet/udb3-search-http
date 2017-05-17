@@ -113,7 +113,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'availableFrom' => '2017-04-26T00:00:00+01:00',
                 'availableTo' => '2017-04-28T15:30:23+01:00',
                 'workflowStatus' => 'DRAFT',
-                'regionId' => 'gem-leuven',
+                'regions' => ['gem-leuven', 'prv-limburg'],
                 'coordinates' => '-40,70',
                 'distance' => '30km',
                 'postalCode' => 3000,
@@ -171,10 +171,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
             )
-            ->withRegion(
-                new RegionId('gem-leuven'),
+            ->withRegions(
                 $this->regionIndexName,
-                $this->regionDocumentType
+                $this->regionDocumentType,
+                new RegionId('gem-leuven'),
+                new RegionId('prv-limburg')
             )
             ->withGeoDistanceParameters(
                 new GeoDistanceParameters(

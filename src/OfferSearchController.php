@@ -176,11 +176,12 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('regionId'))) {
-            $parameters = $parameters->withRegion(
-                new RegionId($request->query->get('regionId')),
+        $regionIds = $this->getRegionIdsFromQuery($request, 'regions');
+        if (!empty($regionIds)) {
+            $parameters = $parameters->withRegions(
                 $this->regionIndexName,
-                $this->regionDocumentType
+                $this->regionDocumentType,
+                ...$regionIds
             );
         }
 
@@ -505,6 +506,22 @@ class OfferSearchController
                 } catch (\InvalidArgumentException $e) {
                     throw new \InvalidArgumentException("Unknown facet name '$value'.");
                 }
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return RegionIds[]
+     */
+    private function getRegionIdsFromQuery(Request $request, $queryParameter)
+    {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                return new RegionId($value);
             }
         );
     }
