@@ -11,6 +11,7 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
+use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
@@ -20,11 +21,14 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\SortBy;
+use CultuurNet\UDB3\Search\Offer\Sorting;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use CultuurNet\UDB3\Search\Region\RegionId;
+use CultuurNet\UDB3\Search\SortOrder;
 use CultuurNet\UDB3\ValueObject\MultilingualString;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Geography\Country;
@@ -109,7 +113,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'availableFrom' => '2017-04-26T00:00:00+01:00',
                 'availableTo' => '2017-04-28T15:30:23+01:00',
                 'workflowStatus' => 'DRAFT',
-                'regionId' => 'gem-leuven',
+                'regions' => ['gem-leuven', 'prv-limburg'],
                 'coordinates' => '-40,70',
                 'distance' => '30km',
                 'postalCode' => 3000,
@@ -136,10 +140,16 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'termIds' => ['1.45.678.95', 'azYBznHY'],
                 'termLabels' => ['Jeugdhuis', 'Cultureel centrum'],
                 'locationTermIds' => ['1234', '5678'],
+                'uitpas' => 'true',
                 'locationTermLabels' => ['foo1', 'bar1'],
                 'organizerTermIds' => ['9012', '3456'],
                 'organizerTermLabels' => ['foo2', 'bar2'],
                 'facets' => ['regions'],
+                'creator' => 'Jane Doe',
+                'sort' => [
+                    'availableTo' => 'asc',
+                    'score' => 'desc',
+                ],
             ]
         );
 
@@ -177,10 +187,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
             )
-            ->withRegion(
-                new RegionId('gem-leuven'),
+            ->withRegions(
                 $this->regionIndexName,
-                $this->regionDocumentType
+                $this->regionDocumentType,
+                new RegionId('gem-leuven'),
+                new RegionId('prv-limburg')
             )
             ->withGeoDistanceParameters(
                 new GeoDistanceParameters(
@@ -234,6 +245,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new TermLabel('foo1'),
                 new TermLabel('bar1')
             )
+            ->withUitpasToggle(
+                true
+            )
             ->withLabels(
                 new LabelName('foo'),
                 new LabelName('bar')
@@ -246,6 +260,19 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withFacets(
                 FacetName::REGIONS()
+            )
+            ->withCreator(
+                new Creator('Jane Doe')
+            )
+            ->withSorting(
+                new Sorting(
+                    SortBy::AVAILABLE_TO(),
+                    SortOrder::ASC()
+                ),
+                new Sorting(
+                    SortBy::SCORE(),
+                    SortOrder::DESC()
+                )
             )
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
@@ -475,67 +502,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @test
      * @dataProvider booleanStringDataProvider
      *
-     * @param mixed $embedParameter
-     * @param bool $expectedEmbedParameter
-     */
-    public function it_converts_the_embed_parameter_to_a_correct_boolean_and_passes_it_to_the_paged_collection_factory(
-        $embedParameter,
-        $expectedEmbedParameter
-    ) {
-        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
-
-        $controller = new OfferSearchController(
-            $this->searchService,
-            $this->regionIndexName,
-            $this->regionDocumentType,
-            $this->queryStringFactory,
-            $this->distanceFactory,
-            $this->facetTreeNormalizer,
-            $pagedCollectionFactory
-        );
-
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
-            [
-                'start' => 0,
-                'limit' => 30,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'embed' => $embedParameter,
-            ]
-        );
-
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withStart(new Natural(0))
-            ->withLimit(new Natural(30));
-
-        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
-
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
-
-        $pagedCollectionFactory->expects($this->once())
-            ->method('fromPagedResultSet')
-            ->with(
-                $expectedResultSet,
-                0,
-                30,
-                $expectedEmbedParameter
-            )
-            ->willReturn($this->createMock(PagedCollection::class));
-
-        $controller->search($request);
-    }
-
-    /**
-     * @test
-     * @dataProvider booleanStringDataProvider
-     *
      * @param string $stringValue
-     * @param bool $booleanValue
+     * @param bool|null $booleanValue
      */
     public function it_converts_the_media_objects_toggle_parameter_to_a_correct_boolean(
         $stringValue,
@@ -551,8 +519,50 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withMediaObjectsToggle($booleanValue);
+        $expectedSearchParameters = (new OfferSearchParameters());
+
+        if (!is_null($booleanValue)) {
+            $expectedSearchParameters = $expectedSearchParameters
+                ->withMediaObjectsToggle($booleanValue);
+        }
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with($expectedSearchParameters)
+            ->willReturn($expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     * @dataProvider booleanStringDataProvider
+     *
+     * @param string $stringValue
+     * @param bool|null $booleanValue
+     */
+    public function it_converts_the_uitpas_toggle_parameter_to_a_correct_boolean(
+        $stringValue,
+        $booleanValue
+    ) {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'uitpas' => $stringValue,
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+            ]
+        );
+
+        $expectedSearchParameters = (new OfferSearchParameters());
+
+        if (!is_null($booleanValue)) {
+            $expectedSearchParameters = $expectedSearchParameters
+                ->withUitpasToggle($booleanValue);
+        }
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -571,6 +581,14 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [
+                false,
+                false,
+            ],
+            [
+                true,
+                true,
+            ],
+            [
                 'false',
                 false,
             ],
@@ -583,6 +601,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 false,
             ],
             [
+                0,
+                false,
+            ],
+            [
                 'true',
                 true,
             ],
@@ -592,7 +614,19 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ],
             [
                 '1',
-                true
+                true,
+            ],
+            [
+                1,
+                true,
+            ],
+            [
+                '',
+                null,
+            ],
+            [
+                null,
+                null,
             ],
         ];
     }
@@ -728,5 +762,111 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ['now'],
             ['1493726880'],
         ];
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_sort_is_not_an_array()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => 'availableTo asc'
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Invalid sorting syntax given.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_field_is_invalid()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'availableTo' => 'asc',
+                    'name.nl' => 'asc',
+                    'score' => 'desc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid sort field 'name.nl' given.");
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_order_is_invalid()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'availableTo' => 'ascending',
+                    'score' => 'descending',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage("Invalid sort order 'ascending' given.");
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_field_is_missing()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'asc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Sort field missing.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_throws_an_exception_when_a_sort_order_is_missing()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'sort' => [
+                    'availableTo' => '',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Sort order missing.');
+
+        $this->controller->search($request);
     }
 }

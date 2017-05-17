@@ -7,6 +7,7 @@ use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
+use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
@@ -15,11 +16,14 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
+use CultuurNet\UDB3\Search\Offer\SortBy;
+use CultuurNet\UDB3\Search\Offer\Sorting;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
 use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use CultuurNet\UDB3\Search\Region\RegionId;
+use CultuurNet\UDB3\Search\SortOrder;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -91,7 +95,7 @@ class OfferSearchController
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new PagedCollectionFactory();
+            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
         $this->searchService = $searchService;
@@ -111,11 +115,6 @@ class OfferSearchController
     {
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-
-        // The embed option is returned as a string, and casting "false" to a
-        // boolean returns true, so we have to do some extra conversion.
-        $embedParameter = $request->query->get('embed', false);
-        $embed = $this->getStringAsBoolean($embedParameter);
 
         if ($limit == 0) {
             $limit = 30;
@@ -177,11 +176,12 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('regionId'))) {
-            $parameters = $parameters->withRegion(
-                new RegionId($request->query->get('regionId')),
+        $regionIds = $this->getRegionIdsFromQuery($request, 'regions');
+        if (!empty($regionIds)) {
+            $parameters = $parameters->withRegions(
                 $this->regionIndexName,
-                $this->regionDocumentType
+                $this->regionDocumentType,
+                ...$regionIds
             );
         }
 
@@ -264,11 +264,14 @@ class OfferSearchController
             );
         }
 
-        $mediaObjectsToggle = $request->query->get('hasMediaObjects', null);
+        $mediaObjectsToggle = $this->castMixedToBool($request->query->get('hasMediaObjects', null));
         if (!is_null($mediaObjectsToggle)) {
-            $parameters = $parameters->withMediaObjectsToggle(
-                $this->getStringAsBoolean($mediaObjectsToggle)
-            );
+            $parameters = $parameters->withMediaObjectsToggle($mediaObjectsToggle);
+        }
+
+        $uitpasToggle = $this->castMixedToBool($request->query->get('uitpas', null));
+        if (!is_null($uitpasToggle)) {
+            $parameters = $parameters->withUitpasToggle($uitpasToggle);
         }
 
         if ($request->query->get('calendarType')) {
@@ -347,13 +350,23 @@ class OfferSearchController
             $parameters = $parameters->withFacets(...$facets);
         }
 
+        if ($request->query->get('creator')) {
+            $parameters = $parameters->withCreator(
+                new Creator($request->query->get('creator'))
+            );
+        }
+
+        $sorting = $this->getSortingFromQuery($request, 'sort');
+        if (!empty($sorting)) {
+            $parameters = $parameters->withSorting(...$sorting);
+        }
+
         $resultSet = $this->searchService->search($parameters);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit,
-            $embed
+            $limit
         );
 
         $jsonArray = $pagedCollection->jsonSerialize();
@@ -371,12 +384,16 @@ class OfferSearchController
     }
 
     /**
-     * @param string $string
-     * @return bool
+     * @param mixed $mixed
+     * @return bool|null
      */
-    private function getStringAsBoolean($string)
+    private function castMixedToBool($mixed)
     {
-        return filter_var($string, FILTER_VALIDATE_BOOLEAN);
+        if (is_null($mixed) || (is_string($mixed) && empty($mixed))) {
+            return null;
+        }
+
+        return filter_var($mixed, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**
@@ -511,6 +528,63 @@ class OfferSearchController
                 }
             }
         );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return RegionIds[]
+     */
+    private function getRegionIdsFromQuery(Request $request, $queryParameter)
+    {
+        return $this->getArrayFromQueryParameters(
+            $request,
+            $queryParameter,
+            function ($value) {
+                return new RegionId($value);
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $queryParameter
+     * @return Sorting[]
+     * @throws \InvalidArgumentException
+     */
+    private function getSortingFromQuery(Request $request, $queryParameter)
+    {
+        $sorting = $request->query->get($queryParameter, []);
+
+        if (!is_array($sorting)) {
+            throw new \InvalidArgumentException('Invalid sorting syntax given.');
+        }
+
+        foreach ($sorting as $field => $order) {
+            if (is_int($field)) {
+                throw new \InvalidArgumentException('Sort field missing.');
+            }
+
+            if (empty($order)) {
+                throw new \InvalidArgumentException('Sort order missing.');
+            }
+
+            try {
+                $sortBy = SortBy::get($field);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
+            }
+
+            try {
+                $sortOrder = SortOrder::get($order);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
+            }
+
+            $sorting[$field] = new Sorting($sortBy, $sortOrder);
+        }
+
+        return array_values($sorting);
     }
 
     /**
