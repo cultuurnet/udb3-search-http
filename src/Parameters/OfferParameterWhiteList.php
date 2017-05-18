@@ -14,6 +14,7 @@ class OfferParameterWhiteList extends AbstractParameterWhiteList
             'limit',
             'q',
             'id',
+            'text',
             'locationId',
             'organizerId',
             'availableFrom',
