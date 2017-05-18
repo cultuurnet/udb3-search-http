@@ -132,6 +132,12 @@ class OfferSearchController
             );
         }
 
+        if (!empty($request->query->get('text'))) {
+            $parameters = $parameters->withText(
+                new StringLiteral($request->query->get('text'))
+            );
+        }
+
         $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
         if (!empty($textLanguages)) {
             $parameters = $parameters->withTextLanguages(...$textLanguages);

@@ -5,7 +5,6 @@ namespace CultuurNet\UDB3\Search\Http;
 use CultuurNet\Geocoding\Coordinate\Coordinates;
 use CultuurNet\Geocoding\Coordinate\Latitude;
 use CultuurNet\Geocoding\Coordinate\Longitude;
-use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
@@ -106,7 +105,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 30,
                 'limit' => 10,
-                'q' => 'dag van de fiets',
+                'q' => 'dag van de fiets AND labels:foo',
+                'text' => '(foo OR bar) AND baz',
                 'id' => '42926044-09f4-4bd5-bc35-427b2fc1a525',
                 'locationId' => '652ab95e-fdff-41ce-8894-1b29dce0d230',
                 'organizerId' => '392168d7-57c9-4488-8e2e-d492c843054b',
@@ -155,7 +155,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $expectedSearchParameters = (new OfferSearchParameters())
             ->withQueryString(
-                new MockQueryString('dag van de fiets')
+                new MockQueryString('dag van de fiets AND labels:foo')
+            )
+            ->withText(
+                new StringLiteral('(foo OR bar) AND baz')
             )
             ->withCdbid(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
