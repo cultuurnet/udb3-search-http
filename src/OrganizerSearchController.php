@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,9 +25,9 @@ class OrganizerSearchController
     private $pagedCollectionFactory;
 
     /**
-     * @var string[]
+     * @var OrganizerParameterWhiteList
      */
-    private $parameterWhitelist = [];
+    private $organizerParameterWhiteList;
 
     /**
      * @param OrganizerSearchServiceInterface $searchService
@@ -42,13 +43,7 @@ class OrganizerSearchController
 
         $this->searchService = $searchService;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
-
-        $this->parameterWhitelist = [
-            'start',
-            'limit',
-            'name',
-            'website'
-        ];
+        $this->organizerParameterWhiteList = new OrganizerParameterWhiteList();
     }
 
     /**
@@ -57,18 +52,12 @@ class OrganizerSearchController
      */
     public function search(Request $request)
     {
-        $unknownParameters = array_diff($request->query->keys(), $this->parameterWhitelist);
-        if (count($unknownParameters) > 0) {
-            throw new \InvalidArgumentException('Unknown query parameter(s): ' . implode(', ', $unknownParameters));
-        }
+        $this->organizerParameterWhiteList->validateParameters(
+            $request->query->keys()
+        );
 
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-
-        // The embed option is returned as a string, and casting "false" to a
-        // boolean returns true, so we have to do some extra conversion.
-        $embedParameter = $request->query->get('embed', false);
-        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
 
         if ($limit == 0) {
             $limit = 30;

@@ -10,6 +10,7 @@ use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Http\Parameters\OfferParameterWhiteList;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
@@ -77,9 +78,9 @@ class OfferSearchController
     private $pagedCollectionFactory;
 
     /**
-     * @var string[]
+     * @var OfferParameterWhiteList
      */
-    private $parameterWhitelist = [];
+    private $offerParameterWhiteList;
 
     /**
      * @param OfferSearchServiceInterface $searchService
@@ -110,52 +111,7 @@ class OfferSearchController
         $this->distanceFactory = $distanceFactory;
         $this->facetTreeNormalizer = $facetTreeNormalizer;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
-
-        $this->parameterWhitelist = [
-            'start',
-            'limit',
-            'q',
-            'id',
-            'locationId',
-            'organizerId',
-            'availableFrom',
-            'availableTo',
-            'workflowStatus',
-            'regions',
-            'coordinates',
-            'distance',
-            'postalCode',
-            'addressCountry',
-            'minAge',
-            'maxAge',
-            'price',
-            'minPrice',
-            'maxPrice',
-            'audienceType',
-            'hasMediaObjects',
-            'labels',
-            'locationLabels',
-            'organizerLabels',
-            'textLanguages',
-            'languages',
-            'calendarType',
-            'dateFrom',
-            'dateTo',
-            'termIds',
-            'termLabels',
-            'locationTermIds',
-            'uitpas',
-            'locationTermLabels',
-            'organizerTermIds',
-            'organizerTermLabels',
-            'facets',
-            'creator',
-            'sort',
-            'createdFrom',
-            'createdTo',
-            'modifiedFrom',
-            'modifiedTo',
-        ];
+        $this->offerParameterWhiteList = new OfferParameterWhiteList();
     }
 
     /**
@@ -164,10 +120,9 @@ class OfferSearchController
      */
     public function search(Request $request)
     {
-        $unknownParameters = array_diff($request->query->keys(), $this->parameterWhitelist);
-        if (count($unknownParameters) > 0) {
-            throw new \InvalidArgumentException('Unknown query parameter(s): ' . implode(', ', $unknownParameters));
-        }
+        $this->offerParameterWhiteList->validateParameters(
+            $request->query->keys()
+        );
 
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
@@ -569,7 +524,7 @@ class OfferSearchController
     /**
      * @param Request $request
      * @param string $queryParameter
-     * @return RegionIds[]
+     * @return RegionId[]
      */
     private function getRegionIdsFromQuery(Request $request, $queryParameter)
     {
