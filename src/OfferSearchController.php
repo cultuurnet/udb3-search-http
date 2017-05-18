@@ -143,6 +143,12 @@ class OfferSearchController
             );
         }
 
+        if (!empty($request->query->get('text'))) {
+            $parameters = $parameters->withText(
+                new StringLiteral($request->query->get('text'))
+            );
+        }
+
         $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
         if (!empty($textLanguages)) {
             $parameters = $parameters->withTextLanguages(...$textLanguages);
@@ -299,6 +305,26 @@ class OfferSearchController
         $dateTo = $this->getDateTimeFromQuery($request, 'dateTo');
         if ($dateTo) {
             $parameters = $parameters->withDateTo($dateTo);
+        }
+
+        $createdFrom = $this->getDateTimeFromQuery($request, 'createdFrom');
+        if ($createdFrom) {
+            $parameters = $parameters->withCreatedFrom($createdFrom);
+        }
+
+        $createdTo = $this->getDateTimeFromQuery($request, 'createdTo');
+        if ($createdTo) {
+            $parameters = $parameters->withCreatedTo($createdTo);
+        }
+
+        $modifiedFrom = $this->getDateTimeFromQuery($request, 'modifiedFrom');
+        if ($modifiedFrom) {
+            $parameters = $parameters->withModifiedFrom($modifiedFrom);
+        }
+
+        $modifiedTo = $this->getDateTimeFromQuery($request, 'modifiedTo');
+        if ($modifiedTo) {
+            $parameters = $parameters->withModifiedTo($modifiedTo);
         }
 
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
