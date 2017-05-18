@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -24,6 +25,11 @@ class OrganizerSearchController
     private $pagedCollectionFactory;
 
     /**
+     * @var OrganizerParameterWhiteList
+     */
+    private $organizerParameterWhiteList;
+
+    /**
      * @param OrganizerSearchServiceInterface $searchService
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
@@ -37,6 +43,7 @@ class OrganizerSearchController
 
         $this->searchService = $searchService;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
+        $this->organizerParameterWhiteList = new OrganizerParameterWhiteList();
     }
 
     /**
@@ -45,13 +52,12 @@ class OrganizerSearchController
      */
     public function search(Request $request)
     {
+        $this->organizerParameterWhiteList->validateParameters(
+            $request->query->keys()
+        );
+
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-
-        // The embed option is returned as a string, and casting "false" to a
-        // boolean returns true, so we have to do some extra conversion.
-        $embedParameter = $request->query->get('embed', false);
-        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
 
         if ($limit == 0) {
             $limit = 30;

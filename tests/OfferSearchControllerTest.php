@@ -872,4 +872,69 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $this->controller->search($request);
     }
+
+    /**
+     * @test
+     * @dataProvider unknownParameterProvider
+     *
+     * @param Request $request
+     * @param \InvalidArgumentException $expecetdException
+     */
+    public function it_rejects_queries_with_unknown_parameters(
+        Request $request,
+        $expectedExceptionMessage
+    ) {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedExceptionMessage);
+
+        $this->controller->search($request);
+    }
+
+    public function unknownParameterProvider()
+    {
+        return [
+            'single unknown parameter' => [
+                'request' => Request::create(
+                    'http://search.uitdatabank.be/offers/',
+                    'GET',
+                    [
+                        'fat' => [
+                            'lip',
+                        ],
+                    ]
+                ),
+                'expectedExceptionMessage' => 'Unknown query parameter(s): fat'
+            ],
+            'multiple unknown parameter' => [
+                'request' => Request::create(
+                    'http://search.uitdatabank.be/offers/',
+                    'GET',
+                    [
+                        'fat' => [
+                            'lip',
+                        ],
+                        'bat' => [
+                            'cave',
+                        ],
+                    ]
+                ),
+                'expectedExceptionMessage' => 'Unknown query parameter(s): fat, bat'
+            ],
+            'unknown and whitelisted parameter' => [
+                'request' => Request::create(
+                    'http://search.uitdatabank.be/offers/',
+                    'GET',
+                    [
+                        'id' => [
+                            '5333ED41-91FA-43F4-82BA-F28A9AC96A6E',
+                        ],
+                        'bat' => [
+                            'cave',
+                        ],
+                    ]
+                ),
+                'expectedExceptionMessage' => 'Unknown query parameter(s): bat'
+            ],
+        ];
+    }
 }
