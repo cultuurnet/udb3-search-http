@@ -151,6 +151,10 @@ class OfferSearchController
             'facets',
             'creator',
             'sort',
+            'createdFrom',
+            'createdTo',
+            'modifiedFrom',
+            'modifiedTo',
         ];
     }
 
