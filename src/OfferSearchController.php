@@ -296,6 +296,26 @@ class OfferSearchController
             $parameters = $parameters->withDateTo($dateTo);
         }
 
+        $createdFrom = $this->getDateTimeFromQuery($request, 'createdFrom');
+        if ($createdFrom) {
+            $parameters = $parameters->withCreatedFrom($createdFrom);
+        }
+
+        $createdTo = $this->getDateTimeFromQuery($request, 'createdTo');
+        if ($createdTo) {
+            $parameters = $parameters->withCreatedTo($createdTo);
+        }
+
+        $modifiedFrom = $this->getDateTimeFromQuery($request, 'modifiedFrom');
+        if ($modifiedFrom) {
+            $parameters = $parameters->withModifiedFrom($modifiedFrom);
+        }
+
+        $modifiedTo = $this->getDateTimeFromQuery($request, 'modifiedTo');
+        if ($modifiedTo) {
+            $parameters = $parameters->withModifiedTo($modifiedTo);
+        }
+
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
         if (!empty($termIds)) {
             $parameters = $parameters->withTermIds(...$termIds);

@@ -134,6 +134,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'calendarType' => 'single',
                 'dateFrom' => '2017-05-01T00:00:00+01:00',
                 'dateTo' => '2017-05-01T23:59:59+01:00',
+                'createdFrom' => '2017-05-01T13:33:37+01:00',
+                'createdTo' => '2017-05-01T13:33:37+01:00',
+                'modifiedFrom' => '2017-05-01T13:33:37+01:00',
+                'modifiedTo' => '2017-05-01T13:33:37+01:00',
                 'termIds' => ['1.45.678.95', 'azYBznHY'],
                 'termLabels' => ['Jeugdhuis', 'Cultureel centrum'],
                 'locationTermIds' => ['1234', '5678'],
@@ -171,6 +175,18 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withAvailableTo(
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-28T15:30:23+01:00')
+            )
+            ->withCreatedFrom(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
+            ->withCreatedTo(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
+            ->withModifiedFrom(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
+            )
+            ->withModifiedTo(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
             )
             ->withWorkflowStatus(
                 new WorkflowStatus('DRAFT')
