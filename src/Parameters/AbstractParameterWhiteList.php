@@ -7,7 +7,7 @@ abstract class AbstractParameterWhiteList
     /**
      * string[] The list of parameters on the white list.
      */
-    protected abstract function getParameterWhiteList();
+    abstract protected function getParameterWhiteList();
 
     /**
      * @param string[] $parameters
