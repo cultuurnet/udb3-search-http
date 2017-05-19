@@ -426,20 +426,25 @@ class OfferSearchController
      */
     private function getAvailabilityFromQuery(Request $request, $queryParameter)
     {
-        // Ignore availability of a wildcard is given.
-        if ($request->query->get($queryParameter, false) === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
-            return null;
-        }
+        $defaultDateTime = \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
+        $defaultDateTimeString = ($defaultDateTime) ? $defaultDateTime->format(\DateTime::ATOM) : null;
 
-        // Parse availability as a datetime.
-        $availability = $this->getDateTimeFromQuery($request, $queryParameter);
+        return $this->getQueryParameterValue(
+            $request,
+            $queryParameter,
+            $defaultDateTimeString,
+            function ($dateTimeString) use ($queryParameter) {
+                $dateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $dateTimeString);
 
-        // If no availability was found use the request time as the default.
-        if (is_null($availability)) {
-            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
-        }
+                if (!$dateTime) {
+                    throw new \InvalidArgumentException(
+                        "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
+                    );
+                }
 
-        return $availability;
+                return $dateTime;
+            }
+        );
     }
 
     /**
@@ -583,29 +588,23 @@ class OfferSearchController
 
     /**
      * @param Request $request
-     * @return null|Country
+     * @return Country|null
      */
     private function getAddressCountryFromQuery(Request $request)
     {
-        $queryParameter = $request->query->get('addressCountry');
-        $defaultsDisabled = $this->getDefaultFiltersDisabledFromQuery($request);
-        $parameterReset = OfferSearchController::QUERY_PARAMETER_RESET_VALUE === $queryParameter;
-
-        $default = $defaultsDisabled || $parameterReset ? null : new Country(CountryCode::fromNative('BE'));
-
-        if ($queryParameter) {
-            $upperCasedCountry = strtoupper((string) $queryParameter);
-
-            try {
-                $countryCode = CountryCode::fromNative($upperCasedCountry);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Unknown country code '{$queryParameter}'.");
+        return $this->getQueryParameterValue(
+            $request,
+            'addressCountry',
+            'BE',
+            function ($country) {
+                try {
+                    $countryCode = CountryCode::fromNative(strtoupper((string) $country));
+                    return new Country($countryCode);
+                } catch (\InvalidArgumentException $e) {
+                    throw new \InvalidArgumentException("Unknown country code '{$country}'.");
+                }
             }
-
-            return new Country($countryCode);
-        } else {
-            return $default;
-        }
+        );
     }
 
     /**
@@ -614,21 +613,54 @@ class OfferSearchController
      */
     private function getWorkflowStatusFromQuery(Request $request)
     {
-        $queryParameter = $request->query->get('workflowStatus');
-        $defaultsDisabled = $this->getDefaultFiltersDisabledFromQuery($request);
-        $parameterReset = OfferSearchController::QUERY_PARAMETER_RESET_VALUE === $queryParameter;
+        return $this->getQueryParameterValue(
+            $request,
+            'workflowStatus',
+            'APPROVED',
+            function ($workflowStatus) {
+                return new WorkflowStatus(strtoupper((string) $workflowStatus));
+            }
+        );
+    }
 
-        $default = $defaultsDisabled || $parameterReset ? null : new WorkflowStatus('APPROVED');
+    /**
+     * @param Request $request
+     * @param string $parameterName
+     * @param mixed|null $defaultValue
+     * @param callable $callback
+     * @return mixed|null
+     */
+    private function getQueryParameterValue(
+        Request $request,
+        $parameterName,
+        $defaultValue = null,
+        callable $callback = null
+    ) {
+        $parameterValue = $request->query->get($parameterName, null);
+        $defaultsEnabled = $this->defaultFiltersAreEnabled($request);
 
-        return is_null($queryParameter) ? $default : new WorkflowStatus($queryParameter);
+        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
+            return null;
+        }
+
+        if (is_null($parameterValue) && $defaultsEnabled) {
+            $parameterValue = $defaultValue;
+        }
+
+        if (!is_null($parameterValue) && is_callable($callback)) {
+            return call_user_func($callback, $parameterValue);
+        }
+
+        return $parameterValue;
     }
 
     /**
      * @param Request $request
      * @return bool
      */
-    private function getDefaultFiltersDisabledFromQuery(Request $request)
+    private function defaultFiltersAreEnabled(Request $request)
     {
-        return $this->castMixedToBool($request->query->get('disableDefaultFilters', true));
+        $disabled = $this->castMixedToBool($request->query->get('disableDefaultFilters', false));
+        return !$disabled;
     }
 }
