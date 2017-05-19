@@ -232,10 +232,9 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
         }
 
-        if ($request->query->get('audienceType')) {
-            $queryBuilder = $queryBuilder->withAudienceTypeFilter(
-                new AudienceType($request->query->get('audienceType'))
-            );
+        $audienceType = $this->getAudienceTypeFromQuery($request);
+        if (!empty($audienceType)) {
+            $queryBuilder = $queryBuilder->withAudienceTypeFilter($audienceType);
         }
 
         $minAge = $request->query->get('minAge', null);
@@ -588,6 +587,22 @@ class OfferSearchController
 
     /**
      * @param Request $request
+     * @return WorkflowStatus|null
+     */
+    private function getWorkflowStatusFromQuery(Request $request)
+    {
+        return $this->getQueryParameterValue(
+            $request,
+            'workflowStatus',
+            'APPROVED',
+            function ($workflowStatus) {
+                return new WorkflowStatus(strtoupper((string) $workflowStatus));
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
      * @return Country|null
      */
     private function getAddressCountryFromQuery(Request $request)
@@ -609,16 +624,16 @@ class OfferSearchController
 
     /**
      * @param Request $request
-     * @return WorkflowStatus|null
+     * @return AudienceType|null
      */
-    private function getWorkflowStatusFromQuery(Request $request)
+    private function getAudienceTypeFromQuery(Request $request)
     {
         return $this->getQueryParameterValue(
             $request,
-            'workflowStatus',
-            'APPROVED',
-            function ($workflowStatus) {
-                return new WorkflowStatus(strtoupper((string) $workflowStatus));
+            'audienceType',
+            'everyone',
+            function ($audienceType) {
+                return new AudienceType($audienceType);
             }
         );
     }

@@ -350,7 +350,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_uses_default_parameters_when_default_filters_are_not_disabled(array $queryParameters)
     {
-        $request = $this->getSearchRequestWithQueryParameters([]);
+        $request = $this->getSearchRequestWithQueryParameters($queryParameters);
 
         $expectedQueryBuilder = $this->queryBuilder
             ->withWorkflowStatusFilter(new WorkflowStatus('APPROVED'))
@@ -358,7 +358,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'),
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00')
             )
-            ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')));
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')))
+            ->withAudienceTypeFilter(new AudienceType('everyone'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -374,9 +375,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         return [
             [[]],
-            [['defaultFiltersDisabled' => 'false']],
-            [['defaultFiltersDisabled' => '']],
-            [['defaultFiltersDisabled' => null]],
+            [['disableDefaultFilters' => 'false']],
+            [['disableDefaultFilters' => '']],
+            [['disableDefaultFilters' => null]],
         ];
     }
 
@@ -391,6 +392,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'availableTo' => '*',
                 'addressCountry' => '*',
                 'workflowStatus' => '*',
+                'audienceType' => '*',
             ]
         );
 
