@@ -15,10 +15,9 @@ use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
-use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
+use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\SortBy;
-use CultuurNet\UDB3\Search\Offer\Sorting;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -41,6 +40,11 @@ class OfferSearchController
      * ?countryCode=*
      */
     const QUERY_PARAMETER_RESET_VALUE = '*';
+
+    /**
+     * @var OfferQueryBuilderInterface
+     */
+    private $queryBuilder;
 
     /**
      * @var OfferSearchServiceInterface
@@ -83,6 +87,7 @@ class OfferSearchController
     private $offerParameterWhiteList;
 
     /**
+     * @param OfferQueryBuilderInterface $queryBuilder
      * @param OfferSearchServiceInterface $searchService
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
@@ -92,6 +97,7 @@ class OfferSearchController
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
+        OfferQueryBuilderInterface $queryBuilder,
         OfferSearchServiceInterface $searchService,
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
@@ -104,6 +110,7 @@ class OfferSearchController
             $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
+        $this->queryBuilder = $queryBuilder;
         $this->searchService = $searchService;
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
@@ -131,74 +138,69 @@ class OfferSearchController
             $limit = 30;
         }
 
-        $parameters = (new OfferSearchParameters())
+        $queryBuilder = $this->queryBuilder
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
 
+        $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
+
         if (!empty($request->query->get('q'))) {
-            $parameters = $parameters->withQueryString(
+            $queryBuilder = $queryBuilder->withAdvancedQuery(
                 $this->queryStringFactory->fromString(
                     $request->query->get('q')
-                )
+                ),
+                ...$textLanguages
             );
         }
 
         if (!empty($request->query->get('text'))) {
-            $parameters = $parameters->withText(
-                new StringLiteral($request->query->get('text'))
+            $queryBuilder = $queryBuilder->withTextQuery(
+                new StringLiteral($request->query->get('text')),
+                ...$textLanguages
             );
         }
 
-        $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
-        if (!empty($textLanguages)) {
-            $parameters = $parameters->withTextLanguages(...$textLanguages);
-        }
-
         $languages = $this->getLanguagesFromQuery($request, 'languages');
-        if (!empty($languages)) {
-            $parameters = $parameters->withLanguages(...$languages);
+        foreach ($languages as $language) {
+            $queryBuilder = $queryBuilder->withLanguageFilter($language);
         }
 
         if (!empty($request->query->get('id'))) {
-            $parameters = $parameters->withCdbid(
+            $queryBuilder = $queryBuilder->withCdbIdFilter(
                 new Cdbid($request->query->get('id'))
             );
         }
 
         if (!empty($request->query->get('locationId'))) {
-            $parameters = $parameters->withLocationCdbid(
+            $queryBuilder = $queryBuilder->withLocationCdbIdFilter(
                 new Cdbid($request->query->get('locationId'))
             );
         }
 
         if (!empty($request->query->get('organizerId'))) {
-            $parameters = $parameters->withOrganizerCdbid(
+            $queryBuilder = $queryBuilder->withOrganizerCdbIdFilter(
                 new Cdbid($request->query->get('organizerId'))
             );
         }
 
-        $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
-        if ($availableFrom instanceof \DateTimeImmutable) {
-            $parameters = $parameters->withAvailableFrom($availableFrom);
-        }
-
-        $availableTo = $this->getAvailabilityFromQuery($request, 'availableTo');
-        if ($availableTo instanceof \DateTimeImmutable) {
-            $parameters = $parameters->withAvailableTo($availableTo);
-        }
-
         if (!empty($request->query->get('workflowStatus'))) {
-            $parameters = $parameters->withWorkflowStatus(
+            $queryBuilder = $queryBuilder->withWorkflowStatusFilter(
                 new WorkflowStatus($request->query->get('workflowStatus'))
             );
         }
 
+        $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
+        $availableTo = $this->getAvailabilityFromQuery($request, 'availableTo');
+        if ($availableFrom || $availableTo) {
+            $queryBuilder = $queryBuilder->withAvailableRangeFilter($availableFrom, $availableTo);
+        }
+
         $regionIds = $this->getRegionIdsFromQuery($request, 'regions');
-        if (!empty($regionIds)) {
-            $parameters = $parameters->withRegions(
+        foreach($regionIds as $regionId) {
+            $queryBuilder = $queryBuilder->withRegionFilter(
                 $this->regionIndexName,
                 $this->regionDocumentType,
-                ...$regionIds
+                $regionId
             );
         }
 
@@ -210,7 +212,7 @@ class OfferSearchController
         } elseif ($distance && !$coordinates) {
             throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
         } elseif ($coordinates && $distance) {
-            $parameters = $parameters->withGeoDistanceParameters(
+            $queryBuilder = $queryBuilder->withGeoDistanceFilter(
                 new GeoDistanceParameters(
                     Coordinates::fromLatLonString($coordinates),
                     $this->distanceFactory->fromString($distance)
@@ -220,7 +222,7 @@ class OfferSearchController
 
         $postalCode = (string) $request->query->get('postalCode');
         if (!empty($postalCode)) {
-            $parameters = $parameters->withPostalCode(
+            $queryBuilder = $queryBuilder->withPostalCodeFilter(
                 new PostalCode($postalCode)
             );
         }
@@ -235,150 +237,138 @@ class OfferSearchController
                 throw new \InvalidArgumentException("Unknown country code '{$requestedCountry}'.");
             }
 
-            $parameters = $parameters->withAddressCountry(
+            $queryBuilder = $queryBuilder->withAddressCountryFilter(
                 new Country($countryCode)
             );
         }
 
-        // Do strict comparison to make sure 0 gets included.
-        if ($request->query->get('minAge', false) !== false) {
-            $parameters = $parameters->withMinimumAge(
-                new Natural($request->query->get('minAge'))
-            );
-        }
-
-        // Do strict comparison to make sure 0 gets included.
-        if ($request->query->get('maxAge', false) !== false) {
-            $parameters = $parameters->withMaximumAge(
-                new Natural($request->query->get('maxAge'))
-            );
-        }
-
-        // Do strict comparison to make sure 0 gets included.
-        if ($request->query->get('price', false) !== false) {
-            $parameters = $parameters->withPrice(
-                Price::fromFloat((float) $request->query->get('price'))
-            );
-        }
-
-        // Do strict comparison to make sure 0 gets included.
-        if ($request->query->get('minPrice', false) !== false) {
-            $parameters = $parameters->withMinimumPrice(
-                Price::fromFloat((float) $request->query->get('minPrice'))
-            );
-        }
-
-        // Do strict comparison to make sure 0 gets included.
-        if ($request->query->get('maxPrice', false) !== false) {
-            $parameters = $parameters->withMaximumPrice(
-                Price::fromFloat((float) $request->query->get('maxPrice'))
-            );
-        }
-
         if ($request->query->get('audienceType')) {
-            $parameters = $parameters->withAudienceType(
+            $queryBuilder = $queryBuilder->withAudienceTypeFilter(
                 new AudienceType($request->query->get('audienceType'))
             );
         }
 
-        $mediaObjectsToggle = $this->castMixedToBool($request->query->get('hasMediaObjects', null));
-        if (!is_null($mediaObjectsToggle)) {
-            $parameters = $parameters->withMediaObjectsToggle($mediaObjectsToggle);
+        $minAge = $request->query->get('minAge', null);
+        $maxAge = $request->query->get('maxAge', null);
+        if (!is_null($minAge) || !is_null($maxAge)) {
+            $minAge = is_null($minAge) ? null : new Natural((int) $minAge);
+            $maxAge = is_null($maxAge) ? null : new Natural((int) $maxAge);
+
+            $queryBuilder = $queryBuilder->withAgeRangeFilter($minAge, $maxAge);
         }
 
-        $uitpasToggle = $this->castMixedToBool($request->query->get('uitpas', null));
-        if (!is_null($uitpasToggle)) {
-            $parameters = $parameters->withUitpasToggle($uitpasToggle);
+        $price = $request->query->get('price', null);
+        $minPrice = $request->query->get('minPrice', null);
+        $maxPrice = $request->query->get('maxPrice', null);
+
+        if (!is_null($price)) {
+            $price = Price::fromFloat((float) $price);
+            $queryBuilder = $queryBuilder->withPriceRangeFilter($price, $price);
+        } elseif (!is_null($minPrice) || !is_null($maxPrice)) {
+            $minPrice = is_null($minPrice) ? null : Price::fromFloat((float) $minPrice);
+            $maxPrice = is_null($maxPrice) ? null : Price::fromFloat((float) $maxPrice);
+
+            $queryBuilder = $queryBuilder->withPriceRangeFilter($minPrice, $maxPrice);
+        }
+
+        $includeMediaObjects = $this->castMixedToBool($request->query->get('hasMediaObjects', null));
+        if (!is_null($includeMediaObjects)) {
+            $queryBuilder = $queryBuilder->withMediaObjectsFilter($includeMediaObjects);
+        }
+
+        $includeUiTPAS = $this->castMixedToBool($request->query->get('uitpas', null));
+        if (!is_null($includeUiTPAS)) {
+            $queryBuilder = $queryBuilder->withUiTPASFilter($includeUiTPAS);
+        }
+
+        if ($request->query->get('creator')) {
+            $queryBuilder = $queryBuilder->withCreatorFilter(
+                new Creator($request->query->get('creator'))
+            );
+        }
+
+        $createdFrom = $this->getDateTimeFromQuery($request, 'createdFrom');
+        $createdTo = $this->getDateTimeFromQuery($request, 'createdTo');
+        if ($createdFrom || $createdTo) {
+            $queryBuilder = $queryBuilder->withCreatedRangeFilter($createdFrom, $createdTo);
+        }
+
+        $modifiedFrom = $this->getDateTimeFromQuery($request, 'modifiedFrom');
+        $modifiedTo = $this->getDateTimeFromQuery($request, 'modifiedTo');
+        if ($modifiedFrom || $modifiedTo) {
+            $queryBuilder = $queryBuilder->withModifiedRangeFilter($modifiedFrom, $modifiedTo);
         }
 
         if ($request->query->get('calendarType')) {
-            $parameters = $parameters->withCalendarType(
+            $queryBuilder = $queryBuilder->withCalendarTypeFilter(
                 new CalendarType($request->query->get('calendarType'))
             );
         }
 
         $dateFrom = $this->getDateTimeFromQuery($request, 'dateFrom');
-        if ($dateFrom) {
-            $parameters = $parameters->withDateFrom($dateFrom);
-        }
-
         $dateTo = $this->getDateTimeFromQuery($request, 'dateTo');
-        if ($dateTo) {
-            $parameters = $parameters->withDateTo($dateTo);
-        }
-
-        $createdFrom = $this->getDateTimeFromQuery($request, 'createdFrom');
-        if ($createdFrom) {
-            $parameters = $parameters->withCreatedFrom($createdFrom);
-        }
-
-        $createdTo = $this->getDateTimeFromQuery($request, 'createdTo');
-        if ($createdTo) {
-            $parameters = $parameters->withCreatedTo($createdTo);
-        }
-
-        $modifiedFrom = $this->getDateTimeFromQuery($request, 'modifiedFrom');
-        if ($modifiedFrom) {
-            $parameters = $parameters->withModifiedFrom($modifiedFrom);
-        }
-
-        $modifiedTo = $this->getDateTimeFromQuery($request, 'modifiedTo');
-        if ($modifiedTo) {
-            $parameters = $parameters->withModifiedTo($modifiedTo);
+        if ($dateFrom || $dateTo) {
+            $queryBuilder = $queryBuilder->withDateRangeFilter($dateFrom, $dateTo);
         }
 
         $termIds = $this->getTermIdsFromQuery($request, 'termIds');
-        if (!empty($termIds)) {
-            $parameters = $parameters->withTermIds(...$termIds);
+        foreach ($termIds as $termId) {
+            $queryBuilder = $queryBuilder->withTermIdFilter($termId);
         }
 
         $termLabels = $this->getTermLabelsFromQuery($request, 'termLabels');
-        if (!empty($termLabels)) {
-            $parameters = $parameters->withTermLabels(...$termLabels);
+        foreach ($termLabels as $termLabel) {
+            $queryBuilder = $queryBuilder->withTermLabelFilter($termLabel);
         }
 
         $locationTermIds = $this->getTermIdsFromQuery($request, 'locationTermIds');
-        if (!empty($locationTermIds)) {
-            $parameters = $parameters->withLocationTermIds(...$locationTermIds);
+        foreach ($locationTermIds as $locationTermId) {
+            $queryBuilder = $queryBuilder->withLocationTermIdFilter($locationTermId);
         }
 
         $locationTermLabels = $this->getTermLabelsFromQuery($request, 'locationTermLabels');
-        if (!empty($locationTermLabels)) {
-            $parameters = $parameters->withLocationTermLabels(...$locationTermLabels);
+        foreach ($locationTermLabels as $locationTermLabel) {
+            $queryBuilder = $queryBuilder->withLocationTermLabelFilter($locationTermLabel);
         }
 
         $labels = $this->getLabelsFromQuery($request, 'labels');
-        if (!empty($labels)) {
-            $parameters = $parameters->withLabels(...$labels);
+        foreach ($labels as $label) {
+            $queryBuilder = $queryBuilder->withLabelFilter($label);
         }
 
         $locationLabels = $this->getLabelsFromQuery($request, 'locationLabels');
-        if (!empty($locationLabels)) {
-            $parameters = $parameters->withLocationLabels(...$locationLabels);
+        foreach ($locationLabels as $locationLabel) {
+            $queryBuilder = $queryBuilder->withLocationLabelFilter($locationLabel);
         }
 
         $organizerLabels = $this->getLabelsFromQuery($request, 'organizerLabels');
-        if (!empty($organizerLabels)) {
-            $parameters = $parameters->withOrganizerLabels(...$organizerLabels);
+        foreach ($organizerLabels as $organizerLabel) {
+            $queryBuilder = $queryBuilder->withOrganizerLabelFilter($organizerLabel);
         }
 
         $facets = $this->getFacetsFromQuery($request, 'facets');
-        if (!empty($facets)) {
-            $parameters = $parameters->withFacets(...$facets);
+        foreach ($facets as $facet) {
+            $queryBuilder = $queryBuilder->withFacet($facet);
         }
 
-        if ($request->query->get('creator')) {
-            $parameters = $parameters->withCreator(
-                new Creator($request->query->get('creator'))
-            );
+        $sorts = $this->getSortingFromQuery($request, 'sort');
+        foreach ($sorts as $field => $order) {
+            try {
+                $sortBy = SortBy::get($field);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
+            }
+
+            try {
+                $sortOrder = SortOrder::get($order);
+            } catch (\InvalidArgumentException $e) {
+                throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
+            }
+
+            $queryBuilder = $queryBuilder->withSort($sortBy, $sortOrder);
         }
 
-        $sorting = $this->getSortingFromQuery($request, 'sort');
-        if (!empty($sorting)) {
-            $parameters = $parameters->withSorting(...$sorting);
-        }
-
-        $resultSet = $this->searchService->search($parameters);
+        $resultSet = $this->searchService->search($queryBuilder);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
@@ -406,7 +396,7 @@ class OfferSearchController
      */
     private function castMixedToBool($mixed)
     {
-        if (is_null($mixed) || (is_string($mixed) && empty($mixed))) {
+        if (is_null($mixed) || (is_string($mixed) && strlen($mixed) === 0)) {
             return null;
         }
 
@@ -481,7 +471,7 @@ class OfferSearchController
     /**
      * @param Request $request
      * @param string $queryParameter
-     * @return TermId[]
+     * @return TermLabel[]
      */
     private function getTermLabelsFromQuery(Request $request, $queryParameter)
     {
@@ -566,7 +556,7 @@ class OfferSearchController
     /**
      * @param Request $request
      * @param string $queryParameter
-     * @return Sorting[]
+     * @return SortOrder[]
      * @throws \InvalidArgumentException
      */
     private function getSortingFromQuery(Request $request, $queryParameter)
@@ -577,31 +567,7 @@ class OfferSearchController
             throw new \InvalidArgumentException('Invalid sorting syntax given.');
         }
 
-        foreach ($sorting as $field => $order) {
-            if (is_int($field)) {
-                throw new \InvalidArgumentException('Sort field missing.');
-            }
-
-            if (empty($order)) {
-                throw new \InvalidArgumentException('Sort order missing.');
-            }
-
-            try {
-                $sortBy = SortBy::get($field);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
-            }
-
-            try {
-                $sortOrder = SortOrder::get($order);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
-            }
-
-            $sorting[$field] = new Sorting($sortBy, $sortOrder);
-        }
-
-        return array_values($sorting);
+        return $sorting;
     }
 
     /**

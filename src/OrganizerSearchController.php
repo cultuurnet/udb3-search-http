@@ -3,7 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
+use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +14,11 @@ use ValueObjects\Web\Url;
 
 class OrganizerSearchController
 {
+    /**
+     * @var OrganizerQueryBuilderInterface
+     */
+    private $queryBuilder;
+
     /**
      * @var OrganizerSearchServiceInterface
      */
@@ -30,10 +35,12 @@ class OrganizerSearchController
     private $organizerParameterWhiteList;
 
     /**
+     * @param OrganizerQueryBuilderInterface $queryBuilder
      * @param OrganizerSearchServiceInterface $searchService
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
+        OrganizerQueryBuilderInterface $queryBuilder,
         OrganizerSearchServiceInterface $searchService,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
@@ -41,6 +48,7 @@ class OrganizerSearchController
             $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
+        $this->queryBuilder = $queryBuilder;
         $this->searchService = $searchService;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
         $this->organizerParameterWhiteList = new OrganizerParameterWhiteList();
@@ -63,23 +71,23 @@ class OrganizerSearchController
             $limit = 30;
         }
 
-        $parameters = (new OrganizerSearchParameters())
+        $queryBuilder = $this->queryBuilder
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
 
         if (!empty($request->query->get('name'))) {
-            $parameters = $parameters->withName(
+            $queryBuilder = $queryBuilder->withAutoCompleteFilter(
                 new StringLiteral($request->query->get('name'))
             );
         }
 
         if (!empty($request->query->get('website'))) {
-            $parameters = $parameters->withWebsite(
+            $queryBuilder = $queryBuilder->withWebsiteFilter(
                 Url::fromNative($request->query->get('website'))
             );
         }
 
-        $resultSet = $this->searchService->search($parameters);
+        $resultSet = $this->searchService->search($queryBuilder);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
