@@ -196,7 +196,7 @@ class OfferSearchController
         }
 
         $regionIds = $this->getRegionIdsFromQuery($request, 'regions');
-        foreach($regionIds as $regionId) {
+        foreach ($regionIds as $regionId) {
             $queryBuilder = $queryBuilder->withRegionFilter(
                 $this->regionIndexName,
                 $this->regionDocumentType,

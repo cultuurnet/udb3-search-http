@@ -164,7 +164,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         /* @var OfferQueryBuilderInterface $expectedQueryBuilder */
         $expectedQueryBuilder = $this->queryBuilder;
-        $expectedQueryBuilder = $expectedQueryBuilder->withAdvancedQuery(
+        $expectedQueryBuilder = $expectedQueryBuilder
+            ->withAdvancedQuery(
                 new MockQueryString('dag van de fiets AND labels:foo'),
                 new Language('nl'),
                 new Language('en')
