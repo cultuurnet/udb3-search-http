@@ -4,6 +4,9 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
+use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
+use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
+use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
@@ -14,6 +17,11 @@ use ValueObjects\Web\Url;
 
 class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var ElasticSearchOrganizerQueryBuilder
+     */
+    private $queryBuilder;
+
     /**
      * @var OrganizerSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
      */
@@ -26,8 +34,9 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        $this->queryBuilder = new ElasticSearchOrganizerQueryBuilder();
         $this->searchService = $this->createMock(OrganizerSearchServiceInterface::class);
-        $this->controller = new OrganizerSearchController($this->searchService);
+        $this->controller = new OrganizerSearchController($this->queryBuilder, $this->searchService);
     }
 
     /**
@@ -44,9 +53,9 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OrganizerSearchParameters())
-            ->withName(new StringLiteral('Foo'))
-            ->withWebsite(Url::fromNative('http://foo.bar'))
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withAutoCompleteFilter(new StringLiteral('Foo'))
+            ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -59,10 +68,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $expectedJsonResponse = json_encode(
             [
@@ -95,100 +101,103 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OrganizerSearchParameters())
+        $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
 
     /**
      * @test
-     * @dataProvider embedParameterDataProvider
+     * @dataProvider unknownParameterProvider
      *
-     * @param mixed $embedParameter
-     * @param bool $expectedEmbedParameter
+     * @param Request $request
+     * @param string $expectedExceptionMessage
      */
-    public function it_converts_the_embed_parameter_to_a_correct_boolean_and_passes_it_to_the_paged_collection_factory(
-        $embedParameter,
-        $expectedEmbedParameter
+    public function it_rejects_queries_with_unknown_parameters(
+        Request $request,
+        $expectedExceptionMessage
     ) {
-        $pagedCollectionFactory = $this->createMock(PagedCollectionFactory::class);
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage($expectedExceptionMessage);
 
-        $controller = new OrganizerSearchController(
-            $this->searchService,
-            $pagedCollectionFactory
-        );
+        $this->controller->search($request);
+    }
 
-        $request = new Request(
-            [
-                'start' => 0,
-                'limit' => 30,
-                'embed' => $embedParameter,
-            ]
-        );
-
-        $expectedSearchParameters = (new OrganizerSearchParameters())
-            ->withStart(new Natural(0))
-            ->withLimit(new Natural(30));
-
-        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
-
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
-
-        $pagedCollectionFactory->expects($this->once())
-            ->method('fromPagedResultSet')
-            ->with(
-                $expectedResultSet,
-                0,
-                30,
-                $expectedEmbedParameter
-            )
-            ->willReturn($this->createMock(PagedCollection::class));
-
-        $controller->search($request);
+    public function unknownParameterProvider()
+    {
+        return [
+            'single unknown parameter' => [
+                'request' => Request::create(
+                    'http://search.uitdatabank.be/organizers/',
+                    'GET',
+                    [
+                        'frog' => [
+                            'face',
+                        ],
+                    ]
+                ),
+                'expectedExceptionMessage' => 'Unknown query parameter(s): frog'
+            ],
+            'multiple unknown parameter' => [
+                'request' => Request::create(
+                    'http://search.uitdatabank.be/organizers/',
+                    'GET',
+                    [
+                        'frog' => [
+                            'face',
+                        ],
+                        'bat' => [
+                            'cave',
+                        ],
+                    ]
+                ),
+                'expectedExceptionMessage' => 'Unknown query parameter(s): frog, bat'
+            ],
+            'unknown and whitelisted parameter' => [
+                'request' => Request::create(
+                    'http://search.uitdatabank.be/organizers/',
+                    'GET',
+                    [
+                        'website' => [
+                            'https://du.de',
+                        ],
+                        'bat' => [
+                            'cave',
+                        ],
+                    ]
+                ),
+                'expectedExceptionMessage' => 'Unknown query parameter(s): bat'
+            ],
+        ];
     }
 
     /**
-     * @return Request[]
+     * @param OrganizerQueryBuilderInterface $expectedQueryBuilder
+     * @param PagedResultSet $pagedResultSet
      */
-    public function embedParameterDataProvider()
-    {
-        return [
-            [
-                'false',
-                false,
-            ],
-            [
-                'FALSE',
-                false,
-            ],
-            [
-                '0',
-                false,
-            ],
-            [
-                'true',
-                true,
-            ],
-            [
-                'TRUE',
-                true,
-            ],
-            [
-                '1',
-                true
-            ],
-        ];
+    private function expectQueryBuilderWillReturnResultSet(
+        OrganizerQueryBuilderInterface $expectedQueryBuilder,
+        PagedResultSet $pagedResultSet
+    ) {
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with(
+                $this->callback(
+                    function ($actualQueryBuilder) use ($expectedQueryBuilder) {
+                        $this->assertEquals(
+                            $expectedQueryBuilder->build()->toArray(),
+                            $actualQueryBuilder->build()->toArray()
+                        );
+                        return true;
+                    }
+                )
+            )
+            ->willReturn($pagedResultSet);
     }
 }

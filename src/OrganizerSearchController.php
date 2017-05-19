@@ -2,7 +2,8 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
+use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
+use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +15,11 @@ use ValueObjects\Web\Url;
 class OrganizerSearchController
 {
     /**
+     * @var OrganizerQueryBuilderInterface
+     */
+    private $queryBuilder;
+
+    /**
      * @var OrganizerSearchServiceInterface
      */
     private $searchService;
@@ -24,19 +30,28 @@ class OrganizerSearchController
     private $pagedCollectionFactory;
 
     /**
+     * @var OrganizerParameterWhiteList
+     */
+    private $organizerParameterWhiteList;
+
+    /**
+     * @param OrganizerQueryBuilderInterface $queryBuilder
      * @param OrganizerSearchServiceInterface $searchService
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
+        OrganizerQueryBuilderInterface $queryBuilder,
         OrganizerSearchServiceInterface $searchService,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new PagedCollectionFactory();
+            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
+        $this->queryBuilder = $queryBuilder;
         $this->searchService = $searchService;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
+        $this->organizerParameterWhiteList = new OrganizerParameterWhiteList();
     }
 
     /**
@@ -45,41 +60,39 @@ class OrganizerSearchController
      */
     public function search(Request $request)
     {
+        $this->organizerParameterWhiteList->validateParameters(
+            $request->query->keys()
+        );
+
         $start = (int) $request->query->get('start', 0);
         $limit = (int) $request->query->get('limit', 30);
-
-        // The embed option is returned as a string, and casting "false" to a
-        // boolean returns true, so we have to do some extra conversion.
-        $embedParameter = $request->query->get('embed', false);
-        $embed = filter_var($embedParameter, FILTER_VALIDATE_BOOLEAN);
 
         if ($limit == 0) {
             $limit = 30;
         }
 
-        $parameters = (new OrganizerSearchParameters())
+        $queryBuilder = $this->queryBuilder
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
 
         if (!empty($request->query->get('name'))) {
-            $parameters = $parameters->withName(
+            $queryBuilder = $queryBuilder->withAutoCompleteFilter(
                 new StringLiteral($request->query->get('name'))
             );
         }
 
         if (!empty($request->query->get('website'))) {
-            $parameters = $parameters->withWebsite(
+            $queryBuilder = $queryBuilder->withWebsiteFilter(
                 Url::fromNative($request->query->get('website'))
             );
         }
 
-        $resultSet = $this->searchService->search($parameters);
+        $resultSet = $this->searchService->search($queryBuilder);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
             $resultSet,
             $start,
-            $limit,
-            $embed
+            $limit
         );
 
         return (new JsonResponse($pagedCollection, 200, ['Content-Type' => 'application/ld+json']))
