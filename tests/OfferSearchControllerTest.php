@@ -463,6 +463,36 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     */
+    public function it_works_with_a_min_price_and_max_price_if_no_exact_price_is_set()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'start' => 0,
+                'limit' => 0,
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'minPrice' => 0.14,
+                'maxPrice' => 2.24,
+            ]
+        );
+
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30))
+            ->withPriceRangeFilter(Price::fromFloat(0.14), Price::fromFloat(2.24));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
      * @dataProvider booleanStringDataProvider
      *
      * @param string $stringValue
