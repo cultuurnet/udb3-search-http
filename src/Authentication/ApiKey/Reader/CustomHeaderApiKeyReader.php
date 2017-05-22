@@ -2,7 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http\Authentication\ApiKey\Reader;
 
-use CultuurNet\UDB3\Search\Authentication\ApiKey;
+use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\ApiKey;
 use Symfony\Component\HttpFoundation\Request;
 
 class CustomHeaderApiKeyReader implements ApiKeyReaderInterface

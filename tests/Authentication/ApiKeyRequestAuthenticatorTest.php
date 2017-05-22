@@ -2,9 +2,9 @@
 
 namespace CultuurNet\UDB3\Search\Http\Authentication;
 
-use CultuurNet\UDB3\Search\Authentication\ApiKey;
-use CultuurNet\UDB3\Search\Authentication\ApiKeyAuthenticationException;
-use CultuurNet\UDB3\Search\Authentication\ApiKeyAuthenticatorInterface;
+use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\ApiKey;
+use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\ApiKeyAuthenticationException;
+use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\ApiKeyAuthenticatorInterface;
 use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\Reader\QueryParameterApiKeyReader;
 use Symfony\Component\HttpFoundation\Request;
 
