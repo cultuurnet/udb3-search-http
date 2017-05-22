@@ -1,7 +1,5 @@
 <?php
 
-use CultuurNet\UDB3\Search\Http\Authentication\ApiKeyReaderInterface;
-
 namespace CultuurNet\UDB3\Search\Http\Authentication;
 
 use CultuurNet\UDB3\Search\Authentication\ApiKey;
