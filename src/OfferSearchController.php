@@ -184,9 +184,9 @@ class OfferSearchController
             );
         }
 
-        $workflowStatus = $this->getWorkflowStatusFromQuery($request);
-        if (!empty($workflowStatus)) {
-            $queryBuilder = $queryBuilder->withWorkflowStatusFilter($workflowStatus);
+        $workflowStatuses = $this->getWorkflowStatusesFromQuery($request);
+        if (!empty($workflowStatuses)) {
+            $queryBuilder = $queryBuilder->withWorkflowStatusFilter(...$workflowStatuses);
         }
 
         $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
@@ -587,18 +587,36 @@ class OfferSearchController
 
     /**
      * @param Request $request
-     * @return WorkflowStatus|null
+     * @return WorkflowStatus[]
      */
-    private function getWorkflowStatusFromQuery(Request $request)
+    private function getWorkflowStatusesFromQuery(Request $request)
     {
-        return $this->getQueryParameterValue(
+        // Not the most ideal solution, but as this is a special case for a
+        // parameter that normally only has a single value, but multiple values
+        // with an OR operator by default, it seems fine for now.
+        // Should be refactored down the road if/when we need support for the
+        // OR operator in other URL parameters.
+        $defaultAsString = 'APPROVED,READY_FOR_VALIDATION';
+
+        $parameterValue = $this->getQueryParameterValue(
             $request,
             'workflowStatus',
-            'APPROVED',
+            $defaultAsString,
             function ($workflowStatus) {
                 return new WorkflowStatus(strtoupper((string) $workflowStatus));
             }
         );
+
+        if ($parameterValue == new WorkflowStatus($defaultAsString)) {
+            return [
+                new WorkflowStatus('APPROVED'),
+                new WorkflowStatus('READY_FOR_VALIDATION'),
+            ];
+        } elseif (!is_null($parameterValue)) {
+            return [$parameterValue];
+        } else {
+            return [];
+        }
     }
 
     /**

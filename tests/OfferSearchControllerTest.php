@@ -353,7 +353,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $request = $this->getSearchRequestWithQueryParameters($queryParameters);
 
         $expectedQueryBuilder = $this->queryBuilder
-            ->withWorkflowStatusFilter(new WorkflowStatus('APPROVED'))
+            ->withWorkflowStatusFilter(new WorkflowStatus('APPROVED'), new WorkflowStatus('READY_FOR_VALIDATION'))
             ->withAvailableRangeFilter(
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'),
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00')
