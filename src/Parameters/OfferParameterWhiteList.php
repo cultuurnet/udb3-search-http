@@ -10,9 +10,6 @@ class OfferParameterWhiteList extends AbstractParameterWhiteList
     protected function getParameterWhiteList()
     {
         return [
-            'embed',
-            'start',
-            'limit',
             'q',
             'id',
             'text',

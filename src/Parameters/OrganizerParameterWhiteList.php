@@ -10,9 +10,6 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
     protected function getParameterWhiteList()
     {
         return [
-            'embed',
-            'start',
-            'limit',
             'name',
             'website'
         ];
