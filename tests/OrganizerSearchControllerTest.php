@@ -2,12 +2,9 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
-use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
