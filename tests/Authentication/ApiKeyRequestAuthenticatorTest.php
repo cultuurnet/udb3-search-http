@@ -5,7 +5,7 @@ namespace CultuurNet\UDB3\Search\Http\Authentication;
 use CultuurNet\UDB3\Search\Authentication\ApiKey;
 use CultuurNet\UDB3\Search\Authentication\ApiKeyAuthenticationException;
 use CultuurNet\UDB3\Search\Authentication\ApiKeyAuthenticatorInterface;
-use CultuurNet\UDB3\Search\Http\Authentication\ApiKeyReader\QueryParameterApiKeyReader;
+use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\Reader\QueryParameterApiKeyReader;
 use Symfony\Component\HttpFoundation\Request;
 
 class ApiKeyRequestAuthenticatorTest extends \PHPUnit_Framework_TestCase

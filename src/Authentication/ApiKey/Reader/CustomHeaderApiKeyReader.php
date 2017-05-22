@@ -1,23 +1,23 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http\Authentication\ApiKeyReader;
+namespace CultuurNet\UDB3\Search\Http\Authentication\ApiKey\Reader;
 
 use CultuurNet\UDB3\Search\Authentication\ApiKey;
 use Symfony\Component\HttpFoundation\Request;
 
-class QueryParameterApiKeyReader implements ApiKeyReaderInterface
+class CustomHeaderApiKeyReader implements ApiKeyReaderInterface
 {
     /**
      * @var string
      */
-    private $queryParameterName;
+    private $headerName;
 
     /**
-     * @param string $queryParameterName
+     * @param string $headerName
      */
-    public function __construct($queryParameterName)
+    public function __construct($headerName)
     {
-        $this->queryParameterName = (string) $queryParameterName;
+        $this->headerName = (string) $headerName;
     }
 
     /**
@@ -26,7 +26,7 @@ class QueryParameterApiKeyReader implements ApiKeyReaderInterface
      */
     public function read(Request $request)
     {
-        $apiKeyAsString = (string) $request->query->get($this->queryParameterName, '');
+        $apiKeyAsString = (string) $request->headers->get($this->headerName, '');
 
         if (strlen($apiKeyAsString) == 0) {
             return null;
