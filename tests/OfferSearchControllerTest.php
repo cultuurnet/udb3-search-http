@@ -11,6 +11,7 @@ use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
+use CultuurNet\UDB3\Search\ElasticSearch\Offer\ElasticSearchOfferQueryBuilder;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
@@ -18,10 +19,9 @@ use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
-use CultuurNet\UDB3\Search\Offer\OfferSearchParameters;
+use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
 use CultuurNet\UDB3\Search\Offer\SortBy;
-use CultuurNet\UDB3\Search\Offer\Sorting;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -37,6 +37,11 @@ use ValueObjects\StringLiteral\StringLiteral;
 
 class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var ElasticSearchOfferQueryBuilder
+     */
+    private $queryBuilder;
+
     /**
      * @var OfferSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
      */
@@ -74,6 +79,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 
         $this->regionIndexName = new StringLiteral('geoshapes');
@@ -85,6 +91,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->facetTreeNormalizer = new NodeAwareFacetTreeNormalizer();
 
         $this->controller = new OfferSearchController(
+            $this->queryBuilder,
             $this->searchService,
             $this->regionIndexName,
             $this->regionDocumentType,
@@ -153,50 +160,49 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withQueryString(
-                new MockQueryString('dag van de fiets AND labels:foo')
+        /* @var OfferQueryBuilderInterface $expectedQueryBuilder */
+        $expectedQueryBuilder = $this->queryBuilder;
+        $expectedQueryBuilder = $expectedQueryBuilder
+            ->withAdvancedQuery(
+                new MockQueryString('dag van de fiets AND labels:foo'),
+                new Language('nl'),
+                new Language('en')
             )
-            ->withText(
-                new StringLiteral('(foo OR bar) AND baz')
+            ->withTextQuery(
+                new StringLiteral('(foo OR bar) AND baz'),
+                new Language('nl'),
+                new Language('en')
             )
-            ->withCdbid(
+            ->withLanguageFilter(new Language('nl'))
+            ->withLanguageFilter(new Language('en'))
+            ->withLanguageFilter(new Language('fr'))
+            ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )
-            ->withLocationCdbid(
+            ->withLocationCdbIdFilter(
                 new Cdbid('652ab95e-fdff-41ce-8894-1b29dce0d230')
             )
-            ->withOrganizerCdbid(
+            ->withOrganizerCdbidFilter(
                 new Cdbid('392168d7-57c9-4488-8e2e-d492c843054b')
             )
-            ->withAvailableFrom(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T00:00:00+01:00')
-            )
-            ->withAvailableTo(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-28T15:30:23+01:00')
-            )
-            ->withCreatedFrom(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
-            )
-            ->withCreatedTo(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
-            )
-            ->withModifiedFrom(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
-            )
-            ->withModifiedTo(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
-            )
-            ->withWorkflowStatus(
+            ->withWorkflowStatusFilter(
                 new WorkflowStatus('DRAFT')
             )
-            ->withRegions(
+            ->withAvailableRangeFilter(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T00:00:00+01:00'),
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-28T15:30:23+01:00')
+            )
+            ->withRegionFilter(
                 $this->regionIndexName,
                 $this->regionDocumentType,
-                new RegionId('gem-leuven'),
+                new RegionId('gem-leuven')
+            )
+            ->withRegionFilter(
+                $this->regionIndexName,
+                $this->regionDocumentType,
                 new RegionId('prv-limburg')
             )
-            ->withGeoDistanceParameters(
+            ->withGeoDistanceFilter(
                 new GeoDistanceParameters(
                     new Coordinates(
                         new Latitude(-40.0),
@@ -205,78 +211,42 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                     new MockDistance('30km')
                 )
             )
-            ->withPostalCode(new PostalCode("3000"))
-            ->withAddressCountry(new Country(CountryCode::fromNative('BE')))
-            ->withMinimumAge(new Natural(3))
-            ->withMaximumAge(new Natural(7))
-            ->withPrice(Price::fromFloat(1.55))
-            ->withMinimumPrice(Price::fromFloat(0.99))
-            ->withMaximumPrice(Price::fromFloat(1.99))
-            ->withAudienceType(new AudienceType('members'))
-            ->withMediaObjectsToggle(true)
-            ->withTextLanguages(
-                new Language('nl'),
-                new Language('en')
+            ->withPostalCodeFilter(new PostalCode("3000"))
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')))
+            ->withAudienceTypeFilter(new AudienceType('members'))
+            ->withAgeRangeFilter(new Natural(3), new Natural(7))
+            ->withPriceRangeFilter(Price::fromFloat(1.55), Price::fromFloat(1.55))
+            ->withMediaObjectsFilter(true)
+            ->withUiTPASFilter(true)
+            ->withCreatorFilter(new Creator('Jane Doe'))
+            ->withCreatedRangeFilter(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00'),
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
             )
-            ->withLanguages(
-                new Language('nl'),
-                new Language('en'),
-                new Language('fr')
+            ->withModifiedRangeFilter(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00'),
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T13:33:37+01:00')
             )
-            ->withCalendarType(
-                new CalendarType('single')
-            )
-            ->withDateFrom(
-                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T00:00:00+01:00')
-            )
-            ->withDateTo(
+            ->withCalendarTypeFilter(new CalendarType('single'))
+            ->withDateRangeFilter(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T00:00:00+01:00'),
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-05-01T23:59:59+01:00')
             )
-            ->withTermIds(
-                new TermId('1.45.678.95'),
-                new TermId('azYBznHY')
-            )
-            ->withTermLabels(
-                new TermLabel('Jeugdhuis'),
-                new TermLabel('Cultureel centrum')
-            )
-            ->withLocationTermIds(
-                new TermId('1234'),
-                new TermId('5678')
-            )
-            ->withLocationTermLabels(
-                new TermLabel('foo1'),
-                new TermLabel('bar1')
-            )
-            ->withUitpasToggle(
-                true
-            )
-            ->withLabels(
-                new LabelName('foo'),
-                new LabelName('bar')
-            )
-            ->withLocationLabels(
-                new LabelName('lorem')
-            )
-            ->withOrganizerLabels(
-                new LabelName('ipsum')
-            )
-            ->withFacets(
-                FacetName::REGIONS()
-            )
-            ->withCreator(
-                new Creator('Jane Doe')
-            )
-            ->withSorting(
-                new Sorting(
-                    SortBy::AVAILABLE_TO(),
-                    SortOrder::ASC()
-                ),
-                new Sorting(
-                    SortBy::SCORE(),
-                    SortOrder::DESC()
-                )
-            )
+            ->withTermIdFilter(new TermId('1.45.678.95'))
+            ->withTermIdFilter(new TermId('azYBznHY'))
+            ->withTermLabelFilter(new TermLabel('Jeugdhuis'))
+            ->withTermLabelFilter(new TermLabel('Cultureel centrum'))
+            ->withLocationTermIdFilter(new TermId('1234'))
+            ->withLocationTermIdFilter(new TermId('5678'))
+            ->withLocationTermLabelFilter(new TermLabel('foo1'))
+            ->withLocationTermLabelFilter(new TermLabel('bar1'))
+            ->withLabelFilter(new LabelName('foo'))
+            ->withLabelFilter(new LabelName('bar'))
+            ->withLocationLabelFilter(new LabelName('lorem'))
+            ->withOrganizerLabelFilter(new LabelName('ipsum'))
+            ->withFacet(FacetName::REGIONS())
+            ->withSort(SortBy::AVAILABLE_TO(), SortOrder::ASC())
+            ->withSort(SortBy::SCORE(), SortOrder::DESC())
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -309,10 +279,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
         );
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $expectedJsonResponse = json_encode(
             [
@@ -367,16 +334,13 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
+        $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -395,16 +359,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ['REQUEST_TIME' => 1493195661]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withAvailableFrom(\DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'))
-            ->withAvailableTo(\DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'));
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withAvailableRangeFilter(
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'),
+                \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00')
+            );
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -485,18 +448,44 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
+        $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30))
-            ->withMinimumAge(new Natural(0))
-            ->withMaximumAge(new Natural(0));
+            ->withAgeRangeFilter(new Natural(0), new Natural(0));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_works_with_a_min_price_and_max_price_if_no_exact_price_is_set()
+    {
+        $request = Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            [
+                'start' => 0,
+                'limit' => 0,
+                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'minPrice' => 0.14,
+                'maxPrice' => 2.24,
+            ]
+        );
+
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30))
+            ->withPriceRangeFilter(Price::fromFloat(0.14), Price::fromFloat(2.24));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -522,19 +511,16 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters());
+        $expectedQueryBuilder = $this->queryBuilder;
 
         if (!is_null($booleanValue)) {
-            $expectedSearchParameters = $expectedSearchParameters
-                ->withMediaObjectsToggle($booleanValue);
+            $expectedQueryBuilder = $expectedQueryBuilder
+                ->withMediaObjectsFilter($booleanValue);
         }
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -560,19 +546,16 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters());
+        $expectedQueryBuilder = $this->queryBuilder;
 
         if (!is_null($booleanValue)) {
-            $expectedSearchParameters = $expectedSearchParameters
-                ->withUitpasToggle($booleanValue);
+            $expectedQueryBuilder = $expectedQueryBuilder
+                ->withUiTPASFilter($booleanValue);
         }
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -650,6 +633,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'labels' => 'foo',
                 'organizerLabels' => 'bar',
                 'locationLabels' => 'baz',
+                'text' => 'foobar',
                 'textLanguages' => 'nl',
                 'languages' => 'nl',
                 'termIds' => '0.145.567.6',
@@ -658,24 +642,21 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
+        $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10))
-            ->withLabels(new LabelName('foo'))
-            ->withOrganizerLabels(new LabelName('bar'))
-            ->withLocationLabels(new LabelName('baz'))
-            ->withTextLanguages(new Language('nl'))
-            ->withLanguages(new Language('nl'))
-            ->withTermIds(new TermId('0.145.567.6'))
-            ->withTermLabels(new TermLabel('Jeugdhuis'))
-            ->withFacets(FacetName::REGIONS());
+            ->withTextQuery(new StringLiteral('foobar'), new Language('nl'))
+            ->withLanguageFilter(new Language('nl'))
+            ->withTermIdFilter(new TermId('0.145.567.6'))
+            ->withTermLabelFilter(new TermLabel('Jeugdhuis'))
+            ->withLabelFilter(new LabelName('foo'))
+            ->withLocationLabelFilter(new LabelName('baz'))
+            ->withOrganizerLabelFilter(new LabelName('bar'))
+            ->withFacet(FacetName::REGIONS());
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -717,15 +698,12 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OfferSearchParameters())
-            ->withAddressCountry(new Country(CountryCode::fromNative('NL')));
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('NL')));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -833,52 +811,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
-     */
-    public function it_throws_an_exception_when_a_sort_field_is_missing()
-    {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
-            [
-                'sort' => [
-                    'asc',
-                ]
-            ]
-        );
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Sort field missing.');
-
-        $this->controller->search($request);
-    }
-
-    /**
-     * @test
-     */
-    public function it_throws_an_exception_when_a_sort_order_is_missing()
-    {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
-            [
-                'sort' => [
-                    'availableTo' => '',
-                ]
-            ]
-        );
-
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Sort order missing.');
-
-        $this->controller->search($request);
-    }
-
-    /**
-     * @test
      * @dataProvider unknownParameterProvider
      *
      * @param Request $request
-     * @param \InvalidArgumentException $expecetdException
+     * @param string $expectedExceptionMessage
      */
     public function it_rejects_queries_with_unknown_parameters(
         Request $request,
@@ -936,5 +872,29 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'expectedExceptionMessage' => 'Unknown query parameter(s): bat'
             ],
         ];
+    }
+
+    /**
+     * @param OfferQueryBuilderInterface $expectedQueryBuilder
+     * @param PagedResultSet $pagedResultSet
+     */
+    private function expectQueryBuilderWillReturnResultSet(
+        OfferQueryBuilderInterface $expectedQueryBuilder,
+        PagedResultSet $pagedResultSet
+    ) {
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with(
+                $this->callback(
+                    function ($actualQueryBuilder) use ($expectedQueryBuilder) {
+                        $this->assertEquals(
+                            $expectedQueryBuilder->build()->toArray(),
+                            $actualQueryBuilder->build()->toArray()
+                        );
+                        return true;
+                    }
+                )
+            )
+            ->willReturn($pagedResultSet);
     }
 }

@@ -2,9 +2,9 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use CultuurNet\Hydra\PagedCollection;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
-use CultuurNet\UDB3\Search\Organizer\OrganizerSearchParameters;
+use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
+use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
@@ -14,6 +14,11 @@ use ValueObjects\Web\Url;
 
 class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var ElasticSearchOrganizerQueryBuilder
+     */
+    private $queryBuilder;
+
     /**
      * @var OrganizerSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
      */
@@ -26,8 +31,9 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        $this->queryBuilder = new ElasticSearchOrganizerQueryBuilder();
         $this->searchService = $this->createMock(OrganizerSearchServiceInterface::class);
-        $this->controller = new OrganizerSearchController($this->searchService);
+        $this->controller = new OrganizerSearchController($this->queryBuilder, $this->searchService);
     }
 
     /**
@@ -44,9 +50,9 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OrganizerSearchParameters())
-            ->withName(new StringLiteral('Foo'))
-            ->withWebsite(Url::fromNative('http://foo.bar'))
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withAutoCompleteFilter(new StringLiteral('Foo'))
+            ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -59,10 +65,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $expectedJsonResponse = json_encode(
             [
@@ -95,16 +98,13 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ]
         );
 
-        $expectedSearchParameters = (new OrganizerSearchParameters())
+        $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
-        $this->searchService->expects($this->once())
-            ->method('search')
-            ->with($expectedSearchParameters)
-            ->willReturn($expectedResultSet);
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
 
         $this->controller->search($request);
     }
@@ -114,7 +114,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @dataProvider unknownParameterProvider
      *
      * @param Request $request
-     * @param \InvalidArgumentException $expecetdException
+     * @param string $expectedExceptionMessage
      */
     public function it_rejects_queries_with_unknown_parameters(
         Request $request,
@@ -172,5 +172,29 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'expectedExceptionMessage' => 'Unknown query parameter(s): bat'
             ],
         ];
+    }
+
+    /**
+     * @param OrganizerQueryBuilderInterface $expectedQueryBuilder
+     * @param PagedResultSet $pagedResultSet
+     */
+    private function expectQueryBuilderWillReturnResultSet(
+        OrganizerQueryBuilderInterface $expectedQueryBuilder,
+        PagedResultSet $pagedResultSet
+    ) {
+        $this->searchService->expects($this->once())
+            ->method('search')
+            ->with(
+                $this->callback(
+                    function ($actualQueryBuilder) use ($expectedQueryBuilder) {
+                        $this->assertEquals(
+                            $expectedQueryBuilder->build()->toArray(),
+                            $actualQueryBuilder->build()->toArray()
+                        );
+                        return true;
+                    }
+                )
+            )
+            ->willReturn($pagedResultSet);
     }
 }
