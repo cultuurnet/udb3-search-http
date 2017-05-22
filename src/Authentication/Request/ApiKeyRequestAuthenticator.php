@@ -1,6 +1,6 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http\Authentication;
+namespace CultuurNet\UDB3\Search\Http\Authentication\Request;
 
 use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\ApiKeyAuthenticationException;
 use CultuurNet\UDB3\Search\Http\Authentication\ApiKey\ApiKeyAuthenticatorInterface;

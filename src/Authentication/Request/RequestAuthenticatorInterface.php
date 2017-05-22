@@ -1,6 +1,6 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http\Authentication;
+namespace CultuurNet\UDB3\Search\Http\Authentication\Request;
 
 use Symfony\Component\HttpFoundation\Request;
 
