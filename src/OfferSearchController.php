@@ -31,7 +31,6 @@ use ValueObjects\Geography\Country;
 use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
-use Zend\Validator\File\Count;
 
 class OfferSearchController
 {
