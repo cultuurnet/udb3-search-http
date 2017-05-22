@@ -55,6 +55,7 @@ class OfferParameterWhiteList extends AbstractParameterWhiteList
             'createdTo',
             'modifiedFrom',
             'modifiedTo',
+            'disableDefaultFilters',
         ];
     }
 }

@@ -106,9 +106,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_returns_a_paged_collection_of_search_results_based_on_request_query_parameters()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'start' => 30,
                 'limit' => 10,
@@ -323,14 +321,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_uses_the_default_limit_of_30_if_a_limit_of_0_is_given()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'start' => 0,
                 'limit' => 0,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => true,
             ]
         );
 
@@ -347,23 +342,22 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     * @dataProvider defaultsEnabledQueryParametersProvider
+     *
+     * @param array $queryParameters
      */
-    public function it_sets_a_default_available_from_and_available_to_if_none_are_given()
+    public function it_uses_default_parameters_when_default_filters_are_not_disabled(array $queryParameters)
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
-            [],
-            [],
-            [],
-            ['REQUEST_TIME' => 1493195661]
-        );
+        $request = $this->getSearchRequestWithQueryParameters($queryParameters);
 
         $expectedQueryBuilder = $this->queryBuilder
+            ->withWorkflowStatusFilter(new WorkflowStatus('APPROVED'), new WorkflowStatus('READY_FOR_VALIDATION'))
             ->withAvailableRangeFilter(
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00'),
                 \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T08:34:21+00:00')
-            );
+            )
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')))
+            ->withAudienceTypeFilter(new AudienceType('everyone'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -373,13 +367,46 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     }
 
     /**
+     * @return array
+     */
+    public function defaultsEnabledQueryParametersProvider()
+    {
+        return [
+            [[]],
+            [['disableDefaultFilters' => 'false']],
+            [['disableDefaultFilters' => '']],
+            [['disableDefaultFilters' => null]],
+        ];
+    }
+
+    /**
+     * @test
+     */
+    public function it_does_not_apply_default_filters_that_have_been_disabled_one_by_one()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'availableFrom' => '*',
+                'availableTo' => '*',
+                'addressCountry' => '*',
+                'workflowStatus' => '*',
+                'audienceType' => '*',
+            ]
+        );
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($this->queryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
      * @test
      */
     public function it_expects_a_valid_available_from_and_available_to_date()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'start' => 0,
                 'limit' => 0,
@@ -401,9 +428,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_throws_an_exception_if_coordinates_is_given_without_distance()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             ['coordinates' => '-40,70']
         );
 
@@ -418,9 +443,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_throws_an_exception_if_distance_is_given_without_coordinates()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             ['distance' => '30km']
         );
 
@@ -435,14 +458,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_works_with_a_min_age_of_zero_and_or_a_max_age_of_zero()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'start' => 0,
                 'limit' => 0,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => true,
                 'minAge' => 0,
                 'maxAge' => 0,
             ]
@@ -465,14 +485,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_works_with_a_min_price_and_max_price_if_no_exact_price_is_set()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'start' => 0,
                 'limit' => 0,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => true,
                 'minPrice' => 0.14,
                 'maxPrice' => 2.24,
             ]
@@ -501,13 +518,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $stringValue,
         $booleanValue
     ) {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'hasMediaObjects' => $stringValue,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => true,
             ]
         );
 
@@ -536,13 +550,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $stringValue,
         $booleanValue
     ) {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'uitpas' => $stringValue,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => true,
             ]
         );
 
@@ -622,14 +633,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_can_handle_a_single_string_value_for_parameters_that_are_normally_arrays()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'start' => 30,
                 'limit' => 10,
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => true,
                 'labels' => 'foo',
                 'organizerLabels' => 'bar',
                 'locationLabels' => 'baz',
@@ -668,7 +676,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Unknown facet name 'bla'.");
-        $request = Request::create('http://search.uitdatabank.be/offers/', 'GET', ['facets' => ['regions', 'bla']]);
+
+        $request = $this->getSearchRequestWithQueryParameters(
+            ['facets' => ['regions', 'bla']]
+        );
+
         $this->controller->search($request);
     }
 
@@ -679,7 +691,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage("Unknown country code 'foobar'.");
-        $request = Request::create('http://search.uitdatabank.be/offers/', 'GET', ['addressCountry' => 'foobar']);
+
+        $request = $this->getSearchRequestWithQueryParameters(
+            ['addressCountry' => 'foobar']
+        );
+
         $this->controller->search($request);
     }
 
@@ -688,12 +704,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_transforms_the_request_address_country_to_uppercase()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
-                'availableFrom' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
-                'availableTo' => OfferSearchController::QUERY_PARAMETER_RESET_VALUE,
+                'disableDefaultFilters' => 'true',
                 'addressCountry' => 'nl'
             ]
         );
@@ -717,7 +730,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     public function it_throws_an_exception_for_a_malformed_date_from(
         $malformedDateTimeAsString
     ) {
-        $request = new Request(['dateFrom' => $malformedDateTimeAsString]);
+        $request = $this->getSearchRequestWithQueryParameters(
+            ['dateFrom' => $malformedDateTimeAsString]
+        );
+
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage('dateFrom should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00');
         $this->controller->search($request);
@@ -750,9 +766,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_throws_an_exception_when_sort_is_not_an_array()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'sort' => 'availableTo asc'
             ]
@@ -769,9 +783,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_throws_an_exception_when_a_sort_field_is_invalid()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'sort' => [
                     'availableTo' => 'asc',
@@ -792,9 +804,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     public function it_throws_an_exception_when_a_sort_order_is_invalid()
     {
-        $request = Request::create(
-            'http://search.uitdatabank.be/offers/',
-            'GET',
+        $request = $this->getSearchRequestWithQueryParameters(
             [
                 'sort' => [
                     'availableTo' => 'ascending',
@@ -830,48 +840,48 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     {
         return [
             'single unknown parameter' => [
-                'request' => Request::create(
-                    'http://search.uitdatabank.be/offers/',
-                    'GET',
+                'request' => $this->getSearchRequestWithQueryParameters(
                     [
-                        'fat' => [
-                            'lip',
-                        ],
+                        'fat' => 'lip',
                     ]
                 ),
                 'expectedExceptionMessage' => 'Unknown query parameter(s): fat'
             ],
             'multiple unknown parameter' => [
-                'request' => Request::create(
-                    'http://search.uitdatabank.be/offers/',
-                    'GET',
+                'request' => $this->getSearchRequestWithQueryParameters(
                     [
-                        'fat' => [
-                            'lip',
-                        ],
-                        'bat' => [
-                            'cave',
-                        ],
+                        'fat' => 'lip',
+                        'bat' => 'cave',
                     ]
                 ),
                 'expectedExceptionMessage' => 'Unknown query parameter(s): fat, bat'
             ],
             'unknown and whitelisted parameter' => [
-                'request' => Request::create(
-                    'http://search.uitdatabank.be/offers/',
-                    'GET',
+                'request' => $this->getSearchRequestWithQueryParameters(
                     [
-                        'id' => [
-                            '5333ED41-91FA-43F4-82BA-F28A9AC96A6E',
-                        ],
-                        'bat' => [
-                            'cave',
-                        ],
+                        'id' => '5333ED41-91FA-43F4-82BA-F28A9AC96A6E',
+                        'bat' => 'cave',
                     ]
                 ),
                 'expectedExceptionMessage' => 'Unknown query parameter(s): bat'
             ],
         ];
+    }
+
+    /**
+     * @param array $queryParameters
+     * @return Request
+     */
+    private function getSearchRequestWithQueryParameters(array $queryParameters)
+    {
+        return Request::create(
+            'http://search.uitdatabank.be/offers/',
+            'GET',
+            $queryParameters,
+            [],
+            [],
+            ['REQUEST_TIME' => 1493195661]
+        );
     }
 
     /**

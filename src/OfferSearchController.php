@@ -31,6 +31,7 @@ use ValueObjects\Geography\Country;
 use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
+use Zend\Validator\File\Count;
 
 class OfferSearchController
 {
@@ -183,10 +184,9 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('workflowStatus'))) {
-            $queryBuilder = $queryBuilder->withWorkflowStatusFilter(
-                new WorkflowStatus($request->query->get('workflowStatus'))
-            );
+        $workflowStatuses = $this->getWorkflowStatusesFromQuery($request);
+        if (!empty($workflowStatuses)) {
+            $queryBuilder = $queryBuilder->withWorkflowStatusFilter(...$workflowStatuses);
         }
 
         $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
@@ -227,25 +227,14 @@ class OfferSearchController
             );
         }
 
-        if (!empty($request->query->get('addressCountry'))) {
-            $requestedCountry = $request->query->get('addressCountry');
-            $upperCasedCountry = strtoupper((string) $requestedCountry);
-
-            try {
-                $countryCode = CountryCode::fromNative($upperCasedCountry);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Unknown country code '{$requestedCountry}'.");
-            }
-
-            $queryBuilder = $queryBuilder->withAddressCountryFilter(
-                new Country($countryCode)
-            );
+        $country = $this->getAddressCountryFromQuery($request);
+        if (!empty($country)) {
+            $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
         }
 
-        if ($request->query->get('audienceType')) {
-            $queryBuilder = $queryBuilder->withAudienceTypeFilter(
-                new AudienceType($request->query->get('audienceType'))
-            );
+        $audienceType = $this->getAudienceTypeFromQuery($request);
+        if (!empty($audienceType)) {
+            $queryBuilder = $queryBuilder->withAudienceTypeFilter($audienceType);
         }
 
         $minAge = $request->query->get('minAge', null);
@@ -436,20 +425,25 @@ class OfferSearchController
      */
     private function getAvailabilityFromQuery(Request $request, $queryParameter)
     {
-        // Ignore availability of a wildcard is given.
-        if ($request->query->get($queryParameter, false) === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
-            return null;
-        }
+        $defaultDateTime = \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
+        $defaultDateTimeString = ($defaultDateTime) ? $defaultDateTime->format(\DateTime::ATOM) : null;
 
-        // Parse availability as a datetime.
-        $availability = $this->getDateTimeFromQuery($request, $queryParameter);
+        return $this->getQueryParameterValue(
+            $request,
+            $queryParameter,
+            $defaultDateTimeString,
+            function ($dateTimeString) use ($queryParameter) {
+                $dateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $dateTimeString);
 
-        // If no availability was found use the request time as the default.
-        if (is_null($availability)) {
-            return \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
-        }
+                if (!$dateTime) {
+                    throw new \InvalidArgumentException(
+                        "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
+                    );
+                }
 
-        return $availability;
+                return $dateTime;
+            }
+        );
     }
 
     /**
@@ -589,5 +583,117 @@ class OfferSearchController
         }
 
         return $values;
+    }
+
+    /**
+     * @param Request $request
+     * @return WorkflowStatus[]
+     */
+    private function getWorkflowStatusesFromQuery(Request $request)
+    {
+        // Not the most ideal solution, but as this is a special case for a
+        // parameter that normally only has a single value, but multiple values
+        // with an OR operator by default, it seems fine for now.
+        // Should be refactored down the road if/when we need support for the
+        // OR operator in other URL parameters.
+        $defaultAsString = 'APPROVED,READY_FOR_VALIDATION';
+
+        $parameterValue = $this->getQueryParameterValue(
+            $request,
+            'workflowStatus',
+            $defaultAsString,
+            function ($workflowStatus) {
+                return new WorkflowStatus(strtoupper((string) $workflowStatus));
+            }
+        );
+
+        if ($parameterValue == new WorkflowStatus($defaultAsString)) {
+            return [
+                new WorkflowStatus('APPROVED'),
+                new WorkflowStatus('READY_FOR_VALIDATION'),
+            ];
+        } elseif (!is_null($parameterValue)) {
+            return [$parameterValue];
+        } else {
+            return [];
+        }
+    }
+
+    /**
+     * @param Request $request
+     * @return Country|null
+     */
+    private function getAddressCountryFromQuery(Request $request)
+    {
+        return $this->getQueryParameterValue(
+            $request,
+            'addressCountry',
+            'BE',
+            function ($country) {
+                try {
+                    $countryCode = CountryCode::fromNative(strtoupper((string) $country));
+                    return new Country($countryCode);
+                } catch (\InvalidArgumentException $e) {
+                    throw new \InvalidArgumentException("Unknown country code '{$country}'.");
+                }
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @return AudienceType|null
+     */
+    private function getAudienceTypeFromQuery(Request $request)
+    {
+        return $this->getQueryParameterValue(
+            $request,
+            'audienceType',
+            'everyone',
+            function ($audienceType) {
+                return new AudienceType($audienceType);
+            }
+        );
+    }
+
+    /**
+     * @param Request $request
+     * @param string $parameterName
+     * @param mixed|null $defaultValue
+     * @param callable $callback
+     * @return mixed|null
+     */
+    private function getQueryParameterValue(
+        Request $request,
+        $parameterName,
+        $defaultValue = null,
+        callable $callback = null
+    ) {
+        $parameterValue = $request->query->get($parameterName, null);
+        $defaultsEnabled = $this->defaultFiltersAreEnabled($request);
+
+        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
+            return null;
+        }
+
+        if (is_null($parameterValue) && $defaultsEnabled) {
+            $parameterValue = $defaultValue;
+        }
+
+        if (!is_null($parameterValue) && is_callable($callback)) {
+            return call_user_func($callback, $parameterValue);
+        }
+
+        return $parameterValue;
+    }
+
+    /**
+     * @param Request $request
+     * @return bool
+     */
+    private function defaultFiltersAreEnabled(Request $request)
+    {
+        $disabled = $this->castMixedToBool($request->query->get('disableDefaultFilters', false));
+        return !$disabled;
     }
 }
