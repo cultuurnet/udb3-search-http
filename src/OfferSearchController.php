@@ -4,6 +4,8 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\Geocoding\Coordinate\Coordinates;
 use CultuurNet\UDB3\Address\PostalCode;
+use CultuurNet\UDB3\ApiGuard\ApiKey\Reader\ApiKeyReaderInterface;
+use CultuurNet\UDB3\ApiGuard\Consumer\ConsumerReadRepositoryInterface;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
@@ -87,6 +89,8 @@ class OfferSearchController
     private $offerParameterWhiteList;
 
     /**
+     * @param ApiKeyReaderInterface $apiKeyReader
+     * @param ConsumerReadRepositoryInterface $consumerReadRepository
      * @param OfferQueryBuilderInterface $queryBuilder
      * @param OfferSearchServiceInterface $searchService
      * @param StringLiteral $regionIndexName
@@ -97,6 +101,8 @@ class OfferSearchController
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
+        ApiKeyReaderInterface $apiKeyReader,
+        ConsumerReadRepositoryInterface $consumerReadRepository,
         OfferQueryBuilderInterface $queryBuilder,
         OfferSearchServiceInterface $searchService,
         StringLiteral $regionIndexName,
@@ -110,6 +116,8 @@ class OfferSearchController
             $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
         }
 
+        $this->apiKeyReader = $apiKeyReader;
+        $this->consumerReadRepository = $consumerReadRepository;
         $this->queryBuilder = $queryBuilder;
         $this->searchService = $searchService;
         $this->regionIndexName = $regionIndexName;
@@ -143,6 +151,18 @@ class OfferSearchController
             ->withLimit(new Natural($limit));
 
         $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
+
+        $consumerApiKey = $this->apiKeyReader->read($request);
+        $consumer = $consumerApiKey ? $this->consumerReadRepository->getConsumer($consumerApiKey) : null;
+        $defaultQuery = $consumer ? $consumer->getDefaultQuery() : null;
+        if ($defaultQuery) {
+            $queryBuilder = $queryBuilder->withAdvancedQuery(
+                $this->queryStringFactory->fromString(
+                    $defaultQuery->toNative()
+                ),
+                ...$textLanguages
+            );
+        }
 
         if (!empty($request->query->get('q'))) {
             $queryBuilder = $queryBuilder->withAdvancedQuery(
