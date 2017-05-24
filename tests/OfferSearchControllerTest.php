@@ -152,6 +152,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'facets' => ['regions'],
                 'creator' => 'Jane Doe',
                 'sort' => [
+                    'distance' => 'asc',
                     'availableTo' => 'asc',
                     'score' => 'desc',
                 ],
@@ -243,8 +244,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLocationLabelFilter(new LabelName('lorem'))
             ->withOrganizerLabelFilter(new LabelName('ipsum'))
             ->withFacet(FacetName::REGIONS())
-            ->withSort(SortBy::AVAILABLE_TO(), SortOrder::ASC())
-            ->withSort(SortBy::SCORE(), SortOrder::DESC())
+            ->withSortByDistance(
+                new Coordinates(
+                    new Latitude(-40.0),
+                    new Longitude(70.0)
+                ),
+                SortOrder::ASC()
+            )
+            ->withSortByAvailableTo(SortOrder::ASC())
+            ->withSortByScore(SortOrder::DESC())
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
