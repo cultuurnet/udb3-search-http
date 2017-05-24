@@ -38,6 +38,7 @@ class OfferParameterWhiteList extends AbstractParameterWhiteList
             'organizerLabels',
             'textLanguages',
             'languages',
+            'completedLanguages',
             'calendarType',
             'dateFrom',
             'dateTo',
