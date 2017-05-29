@@ -589,16 +589,14 @@ class OfferSearchController
      */
     private function getWorkflowStatusesFromQuery(Request $request)
     {
-        $asString = $this->getQueryParameterValue($request, 'workflowStatus', 'APPROVED,READY_FOR_VALIDATION');
-
-        $asArray = $this->splitQueryParameterValue(
-            $asString,
-            function ($value) {
-                return new WorkflowStatus($value);
+        return $this->getDelimitedQueryParameterValue(
+            $request,
+            'workflowStatus',
+            'APPROVED,READY_FOR_VALIDATION',
+            function ($workflowStatus) {
+                return new WorkflowStatus($workflowStatus);
             }
         );
-
-        return $asArray;
     }
 
     /**
@@ -607,16 +605,14 @@ class OfferSearchController
      */
     private function getCalendarTypesFromQuery(Request $request)
     {
-        $asString = $this->getQueryParameterValue($request, 'calendarType');
-
-        $asArray = $this->splitQueryParameterValue(
-            $asString,
-            function ($value) {
-                return new CalendarType($value);
+        return $this->getDelimitedQueryParameterValue(
+            $request,
+            'calendarType',
+            null,
+            function ($calendarType) {
+                return new CalendarType($calendarType);
             }
         );
-
-        return $asArray;
     }
 
     /**
@@ -671,7 +667,7 @@ class OfferSearchController
     ) {
         $parameterValue = $request->query->get($parameterName, null);
         $defaultsEnabled = $this->defaultFiltersAreEnabled($request);
-        $callback = $callback ? $callback : [$this, 'passthrough'];
+        $callback = $this->ensureCallback($callback);
 
         if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE ||
             is_null($parameterValue) && (is_null($defaultValue) || !$defaultsEnabled)) {
@@ -686,26 +682,35 @@ class OfferSearchController
     }
 
     /**
-     * @param string|null $queryParameterValue
+     * @param Request $request
+     * @param $parameterName
+     * @param mixed|null $defaultValue
      * @param callable $callback
      * @param string $delimiter
      * @return array
      */
-    private function splitQueryParameterValue(
-        $queryParameterValue,
+    private function getDelimitedQueryParameterValue(
+        Request $request,
+        $parameterName,
+        $defaultValue = null,
         callable $callback = null,
         $delimiter = ','
     ) {
-        if (is_null($queryParameterValue)) {
+        $callback = $this->ensureCallback($callback);
+
+        $asString = $this->getQueryParameterValue(
+            $request,
+            $parameterName,
+            $defaultValue
+        );
+
+        if (is_null($asString)) {
             return [];
         }
 
-        $callback = $callback ? $callback : [$this, 'passthrough'];
+        $asArray = explode($delimiter, $asString);
 
-        return array_map(
-            $callback,
-            explode($delimiter, $queryParameterValue)
-        );
+        return array_map($callback, $asArray);
     }
 
     /**
@@ -719,10 +724,19 @@ class OfferSearchController
     }
 
     /**
-     * @param mixed $value
-     * @return mixed
+     * @param callable|null $callback
+     * @return callable
      */
-    private function passthrough($value) {
-        return $value;
+    private function ensureCallback(callable $callback = null)
+    {
+        if (!is_null($callback)) {
+            return $callback;
+        }
+
+        $passthroughCallback = function ($value) {
+            return $value;
+        };
+
+        return $passthroughCallback;
     }
 }
