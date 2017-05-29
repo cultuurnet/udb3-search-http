@@ -287,10 +287,9 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withModifiedRangeFilter($modifiedFrom, $modifiedTo);
         }
 
-        if ($request->query->get('calendarType')) {
-            $queryBuilder = $queryBuilder->withCalendarTypeFilter(
-                new CalendarType($request->query->get('calendarType'))
-            );
+        $calendarTypes = $this->getCalendarTypesFromQuery($request);
+        if (!empty($calendarTypes)) {
+            $queryBuilder = $queryBuilder->withCalendarTypeFilter(...$calendarTypes);
         }
 
         $dateFrom = $this->getDateTimeFromQuery($request, 'dateFrom');
@@ -590,32 +589,34 @@ class OfferSearchController
      */
     private function getWorkflowStatusesFromQuery(Request $request)
     {
-        // Not the most ideal solution, but as this is a special case for a
-        // parameter that normally only has a single value, but multiple values
-        // with an OR operator by default, it seems fine for now.
-        // Should be refactored down the road if/when we need support for the
-        // OR operator in other URL parameters.
-        $defaultAsString = 'APPROVED,READY_FOR_VALIDATION';
+        $asString = $this->getQueryParameterValue($request, 'workflowStatus', 'APPROVED,READY_FOR_VALIDATION');
 
-        $parameterValue = $this->getQueryParameterValue(
-            $request,
-            'workflowStatus',
-            $defaultAsString,
-            function ($workflowStatus) {
-                return new WorkflowStatus(strtoupper((string) $workflowStatus));
+        $asArray = $this->splitQueryParameterValue(
+            $asString,
+            function ($value) {
+                return new WorkflowStatus($value);
             }
         );
 
-        if ($parameterValue == new WorkflowStatus($defaultAsString)) {
-            return [
-                new WorkflowStatus('APPROVED'),
-                new WorkflowStatus('READY_FOR_VALIDATION'),
-            ];
-        } elseif (!is_null($parameterValue)) {
-            return [$parameterValue];
-        } else {
-            return [];
-        }
+        return $asArray;
+    }
+
+    /**
+     * @param Request $request
+     * @return CalendarType[]
+     */
+    private function getCalendarTypesFromQuery(Request $request)
+    {
+        $asString = $this->getQueryParameterValue($request, 'calendarType');
+
+        $asArray = $this->splitQueryParameterValue(
+            $asString,
+            function ($value) {
+                return new CalendarType($value);
+            }
+        );
+
+        return $asArray;
     }
 
     /**
@@ -670,20 +671,41 @@ class OfferSearchController
     ) {
         $parameterValue = $request->query->get($parameterName, null);
         $defaultsEnabled = $this->defaultFiltersAreEnabled($request);
+        $callback = $callback ? $callback : [$this, 'passthrough'];
 
-        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
+        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE ||
+            is_null($parameterValue) && (is_null($defaultValue) || !$defaultsEnabled)) {
             return null;
         }
 
-        if (is_null($parameterValue) && $defaultsEnabled) {
+        if (is_null($parameterValue)) {
             $parameterValue = $defaultValue;
         }
 
-        if (!is_null($parameterValue) && is_callable($callback)) {
-            return call_user_func($callback, $parameterValue);
+        return call_user_func($callback, $parameterValue);
+    }
+
+    /**
+     * @param string|null $queryParameterValue
+     * @param callable $callback
+     * @param string $delimiter
+     * @return array
+     */
+    private function splitQueryParameterValue(
+        $queryParameterValue,
+        callable $callback = null,
+        $delimiter = ','
+    ) {
+        if (is_null($queryParameterValue)) {
+            return [];
         }
 
-        return $parameterValue;
+        $callback = $callback ? $callback : [$this, 'passthrough'];
+
+        return array_map(
+            $callback,
+            explode($delimiter, $queryParameterValue)
+        );
     }
 
     /**
@@ -694,5 +716,13 @@ class OfferSearchController
     {
         $disabled = $this->castMixedToBool($request->query->get('disableDefaultFilters', false));
         return !$disabled;
+    }
+
+    /**
+     * @param mixed $value
+     * @return mixed
+     */
+    private function passthrough($value) {
+        return $value;
     }
 }
