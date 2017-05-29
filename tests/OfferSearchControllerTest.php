@@ -828,6 +828,25 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     */
+    public function it_throws_an_exception_for_sort_order_distance_and_missing_coordinates()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'sort' => [
+                    'distance' => 'asc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Required "coordinates" parameter missing when sorting by distance.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
      * @dataProvider unknownParameterProvider
      *
      * @param Request $request
