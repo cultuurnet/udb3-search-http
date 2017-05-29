@@ -21,7 +21,6 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
-use CultuurNet\UDB3\Search\Offer\SortBy;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
