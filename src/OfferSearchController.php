@@ -17,7 +17,6 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
-use CultuurNet\UDB3\Search\Offer\SortBy;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -211,9 +210,11 @@ class OfferSearchController
         } elseif ($distance && !$coordinates) {
             throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
         } elseif ($coordinates && $distance) {
+            $coordinates = Coordinates::fromLatLonString($coordinates);
+
             $queryBuilder = $queryBuilder->withGeoDistanceFilter(
                 new GeoDistanceParameters(
-                    Coordinates::fromLatLonString($coordinates),
+                    $coordinates,
                     $this->distanceFactory->fromString($distance)
                 )
             );
@@ -339,10 +340,27 @@ class OfferSearchController
         }
 
         $sorts = $this->getSortingFromQuery($request, 'sort');
+
+        $sortBuilders = [
+            'score' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByScore($sortOrder);
+            },
+            'availableTo' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByAvailableTo($sortOrder);
+            },
+            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($coordinates) {
+                if (!$coordinates) {
+                    throw new \InvalidArgumentException(
+                        'Required "coordinates" parameter missing when sorting by distance.'
+                    );
+                }
+
+                return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
+            }
+        ];
+
         foreach ($sorts as $field => $order) {
-            try {
-                $sortBy = SortBy::get($field);
-            } catch (\InvalidArgumentException $e) {
+            if (!isset($sortBuilders[$field])) {
                 throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
             }
 
@@ -352,7 +370,8 @@ class OfferSearchController
                 throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
             }
 
-            $queryBuilder = $queryBuilder->withSort($sortBy, $sortOrder);
+            $callback = $sortBuilders[$field];
+            $queryBuilder = call_user_func($callback, $queryBuilder, $sortOrder);
         }
 
         $resultSet = $this->searchService->search($queryBuilder);
