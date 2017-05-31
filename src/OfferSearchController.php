@@ -17,7 +17,6 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
-use CultuurNet\UDB3\Search\Offer\SortBy;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -216,9 +215,11 @@ class OfferSearchController
         } elseif ($distance && !$coordinates) {
             throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
         } elseif ($coordinates && $distance) {
+            $coordinates = Coordinates::fromLatLonString($coordinates);
+
             $queryBuilder = $queryBuilder->withGeoDistanceFilter(
                 new GeoDistanceParameters(
-                    Coordinates::fromLatLonString($coordinates),
+                    $coordinates,
                     $this->distanceFactory->fromString($distance)
                 )
             );
@@ -292,10 +293,9 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withModifiedRangeFilter($modifiedFrom, $modifiedTo);
         }
 
-        if ($request->query->get('calendarType')) {
-            $queryBuilder = $queryBuilder->withCalendarTypeFilter(
-                new CalendarType($request->query->get('calendarType'))
-            );
+        $calendarTypes = $this->getCalendarTypesFromQuery($request);
+        if (!empty($calendarTypes)) {
+            $queryBuilder = $queryBuilder->withCalendarTypeFilter(...$calendarTypes);
         }
 
         $dateFrom = $this->getDateTimeFromQuery($request, 'dateFrom');
@@ -345,10 +345,27 @@ class OfferSearchController
         }
 
         $sorts = $this->getSortingFromQuery($request, 'sort');
+
+        $sortBuilders = [
+            'score' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByScore($sortOrder);
+            },
+            'availableTo' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByAvailableTo($sortOrder);
+            },
+            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($coordinates) {
+                if (!$coordinates) {
+                    throw new \InvalidArgumentException(
+                        'Required "coordinates" parameter missing when sorting by distance.'
+                    );
+                }
+
+                return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
+            }
+        ];
+
         foreach ($sorts as $field => $order) {
-            try {
-                $sortBy = SortBy::get($field);
-            } catch (\InvalidArgumentException $e) {
+            if (!isset($sortBuilders[$field])) {
                 throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
             }
 
@@ -358,7 +375,8 @@ class OfferSearchController
                 throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
             }
 
-            $queryBuilder = $queryBuilder->withSort($sortBy, $sortOrder);
+            $callback = $sortBuilders[$field];
+            $queryBuilder = call_user_func($callback, $queryBuilder, $sortOrder);
         }
 
         $resultSet = $this->searchService->search($queryBuilder);
@@ -595,32 +613,30 @@ class OfferSearchController
      */
     private function getWorkflowStatusesFromQuery(Request $request)
     {
-        // Not the most ideal solution, but as this is a special case for a
-        // parameter that normally only has a single value, but multiple values
-        // with an OR operator by default, it seems fine for now.
-        // Should be refactored down the road if/when we need support for the
-        // OR operator in other URL parameters.
-        $defaultAsString = 'APPROVED,READY_FOR_VALIDATION';
-
-        $parameterValue = $this->getQueryParameterValue(
+        return $this->getDelimitedQueryParameterValue(
             $request,
             'workflowStatus',
-            $defaultAsString,
+            'APPROVED,READY_FOR_VALIDATION',
             function ($workflowStatus) {
-                return new WorkflowStatus(strtoupper((string) $workflowStatus));
+                return new WorkflowStatus($workflowStatus);
             }
         );
+    }
 
-        if ($parameterValue == new WorkflowStatus($defaultAsString)) {
-            return [
-                new WorkflowStatus('APPROVED'),
-                new WorkflowStatus('READY_FOR_VALIDATION'),
-            ];
-        } elseif (!is_null($parameterValue)) {
-            return [$parameterValue];
-        } else {
-            return [];
-        }
+    /**
+     * @param Request $request
+     * @return CalendarType[]
+     */
+    private function getCalendarTypesFromQuery(Request $request)
+    {
+        return $this->getDelimitedQueryParameterValue(
+            $request,
+            'calendarType',
+            null,
+            function ($calendarType) {
+                return new CalendarType($calendarType);
+            }
+        );
     }
 
     /**
@@ -675,20 +691,50 @@ class OfferSearchController
     ) {
         $parameterValue = $request->query->get($parameterName, null);
         $defaultsEnabled = $this->defaultFiltersAreEnabled($request);
+        $callback = $this->ensureCallback($callback);
 
-        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
+        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE ||
+            is_null($parameterValue) && (is_null($defaultValue) || !$defaultsEnabled)) {
             return null;
         }
 
-        if (is_null($parameterValue) && $defaultsEnabled) {
+        if (is_null($parameterValue)) {
             $parameterValue = $defaultValue;
         }
 
-        if (!is_null($parameterValue) && is_callable($callback)) {
-            return call_user_func($callback, $parameterValue);
+        return call_user_func($callback, $parameterValue);
+    }
+
+    /**
+     * @param Request $request
+     * @param $parameterName
+     * @param mixed|null $defaultValue
+     * @param callable $callback
+     * @param string $delimiter
+     * @return array
+     */
+    private function getDelimitedQueryParameterValue(
+        Request $request,
+        $parameterName,
+        $defaultValue = null,
+        callable $callback = null,
+        $delimiter = ','
+    ) {
+        $callback = $this->ensureCallback($callback);
+
+        $asString = $this->getQueryParameterValue(
+            $request,
+            $parameterName,
+            $defaultValue
+        );
+
+        if (is_null($asString)) {
+            return [];
         }
 
-        return $parameterValue;
+        $asArray = explode($delimiter, $asString);
+
+        return array_map($callback, $asArray);
     }
 
     /**
@@ -699,5 +745,22 @@ class OfferSearchController
     {
         $disabled = $this->castMixedToBool($request->query->get('disableDefaultFilters', false));
         return !$disabled;
+    }
+
+    /**
+     * @param callable|null $callback
+     * @return callable
+     */
+    private function ensureCallback(callable $callback = null)
+    {
+        if (!is_null($callback)) {
+            return $callback;
+        }
+
+        $passthroughCallback = function ($value) {
+            return $value;
+        };
+
+        return $passthroughCallback;
     }
 }

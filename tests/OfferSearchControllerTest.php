@@ -21,7 +21,6 @@ use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
-use CultuurNet\UDB3\Search\Offer\SortBy;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -153,6 +152,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'facets' => ['regions'],
                 'creator' => 'Jane Doe',
                 'sort' => [
+                    'distance' => 'asc',
                     'availableTo' => 'asc',
                     'score' => 'desc',
                 ],
@@ -246,8 +246,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLocationLabelFilter(new LabelName('lorem'))
             ->withOrganizerLabelFilter(new LabelName('ipsum'))
             ->withFacet(FacetName::REGIONS())
-            ->withSort(SortBy::AVAILABLE_TO(), SortOrder::ASC())
-            ->withSort(SortBy::SCORE(), SortOrder::DESC())
+            ->withSortByDistance(
+                new Coordinates(
+                    new Latitude(-40.0),
+                    new Longitude(70.0)
+                ),
+                SortOrder::ASC()
+            )
+            ->withSortByAvailableTo(SortOrder::ASC())
+            ->withSortByScore(SortOrder::DESC())
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -677,6 +684,32 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
+    public function it_should_split_multiple_calendar_types_delimited_with_a_comma()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'start' => 30,
+                'limit' => 10,
+                'disableDefaultFilters' => true,
+                'calendarType' => 'SINGLE,MULTIPLE',
+            ]
+        );
+
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withStart(new Natural(30))
+            ->withLimit(new Natural(10))
+            ->withCalendarTypeFilter(new CalendarType('SINGLE'), new CalendarType('MULTIPLE'));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
     public function it_throws_an_exception_when_an_unknown_facet_name_is_given()
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -826,6 +859,25 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     */
+    public function it_throws_an_exception_for_sort_order_distance_and_missing_coordinates()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'sort' => [
+                    'distance' => 'asc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Required "coordinates" parameter missing when sorting by distance.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
      * @dataProvider unknownParameterProvider
      *
      * @param Request $request
@@ -903,8 +955,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $this->callback(
                     function ($actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
-                            $expectedQueryBuilder->build()->toArray(),
-                            $actualQueryBuilder->build()->toArray()
+                            json_encode($expectedQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT),
+                            json_encode($actualQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT)
                         );
                         return true;
                     }
