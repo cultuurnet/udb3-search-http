@@ -164,6 +164,11 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withLanguageFilter($language);
         }
 
+        $completedLanguages = $this->getLanguagesFromQuery($request, 'completedLanguages');
+        foreach ($completedLanguages as $completedLanguage) {
+            $queryBuilder = $queryBuilder->withCompletedLanguageFilter($completedLanguage);
+        }
+
         if (!empty($request->query->get('id'))) {
             $queryBuilder = $queryBuilder->withCdbIdFilter(
                 new Cdbid($request->query->get('id'))

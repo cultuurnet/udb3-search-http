@@ -134,6 +134,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerLabels' => ['ipsum'],
                 'textLanguages' => ['nl', 'en'],
                 'languages' => ['nl', 'en', 'fr'],
+                'completedLanguages' => ['nl', 'fr'],
                 'calendarType' => 'single',
                 'dateFrom' => '2017-05-01T00:00:00+01:00',
                 'dateTo' => '2017-05-01T23:59:59+01:00',
@@ -174,6 +175,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLanguageFilter(new Language('nl'))
             ->withLanguageFilter(new Language('en'))
             ->withLanguageFilter(new Language('fr'))
+            ->withCompletedLanguageFilter(new Language('nl'))
+            ->withCompletedLanguageFilter(new Language('fr'))
             ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )
@@ -651,6 +654,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'text' => 'foobar',
                 'textLanguages' => 'nl',
                 'languages' => 'nl',
+                'completedLanguages' => 'nl',
                 'termIds' => '0.145.567.6',
                 'termLabels' => 'Jeugdhuis',
                 'facets' => 'regions',
@@ -662,6 +666,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLimit(new Natural(10))
             ->withTextQuery(new StringLiteral('foobar'), new Language('nl'))
             ->withLanguageFilter(new Language('nl'))
+            ->withCompletedLanguageFilter(new Language('nl'))
             ->withTermIdFilter(new TermId('0.145.567.6'))
             ->withTermLabelFilter(new TermLabel('Jeugdhuis'))
             ->withLabelFilter(new LabelName('foo'))
