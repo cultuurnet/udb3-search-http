@@ -679,6 +679,32 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
+    public function it_should_split_multiple_calendar_types_delimited_with_a_comma()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'start' => 30,
+                'limit' => 10,
+                'disableDefaultFilters' => true,
+                'calendarType' => 'SINGLE,MULTIPLE',
+            ]
+        );
+
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withStart(new Natural(30))
+            ->withLimit(new Natural(10))
+            ->withCalendarTypeFilter(new CalendarType('SINGLE'), new CalendarType('MULTIPLE'));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
     public function it_throws_an_exception_when_an_unknown_facet_name_is_given()
     {
         $this->expectException(\InvalidArgumentException::class);
@@ -924,8 +950,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $this->callback(
                     function ($actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
-                            $expectedQueryBuilder->build()->toArray(),
-                            $actualQueryBuilder->build()->toArray()
+                            json_encode($expectedQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT),
+                            json_encode($actualQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT)
                         );
                         return true;
                     }
