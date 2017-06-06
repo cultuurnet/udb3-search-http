@@ -15,6 +15,17 @@ class DocumentLanguageOfferRequestParser extends AbstractOfferRequestParser
      */
     public function parse(Request $request, OfferQueryBuilderInterface $offerQueryBuilder)
     {
+        $mainLanguage = $this->getStringFromQueryParameter(
+            $request,
+            'mainLanguage',
+            null,
+            $this->getLanguageCallback()
+        );
+
+        if ($mainLanguage) {
+            $offerQueryBuilder = $offerQueryBuilder->withMainLanguageFilter($mainLanguage);
+        }
+
         $languages = $this->getLanguagesFromQuery($request, 'languages');
         foreach ($languages as $language) {
             $offerQueryBuilder = $offerQueryBuilder->withLanguageFilter($language);
