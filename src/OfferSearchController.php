@@ -10,6 +10,7 @@ use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\OfferRequestParserInterface;
 use CultuurNet\UDB3\Search\Http\Parameters\OfferParameterWhiteList;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
@@ -87,6 +88,7 @@ class OfferSearchController
 
     /**
      * @param OfferQueryBuilderInterface $queryBuilder
+     * @param OfferRequestParserInterface $offerRequestParser
      * @param OfferSearchServiceInterface $searchService
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
@@ -97,6 +99,7 @@ class OfferSearchController
      */
     public function __construct(
         OfferQueryBuilderInterface $queryBuilder,
+        OfferRequestParserInterface $offerRequestParser,
         OfferSearchServiceInterface $searchService,
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
@@ -110,6 +113,7 @@ class OfferSearchController
         }
 
         $this->queryBuilder = $queryBuilder;
+        $this->requestParser = $offerRequestParser;
         $this->searchService = $searchService;
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
@@ -141,6 +145,8 @@ class OfferSearchController
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
 
+        $queryBuilder = $this->requestParser->parse($request, $queryBuilder);
+
         $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
 
         if (!empty($request->query->get('q'))) {
@@ -157,16 +163,6 @@ class OfferSearchController
                 new StringLiteral($request->query->get('text')),
                 ...$textLanguages
             );
-        }
-
-        $languages = $this->getLanguagesFromQuery($request, 'languages');
-        foreach ($languages as $language) {
-            $queryBuilder = $queryBuilder->withLanguageFilter($language);
-        }
-
-        $completedLanguages = $this->getLanguagesFromQuery($request, 'completedLanguages');
-        foreach ($completedLanguages as $completedLanguage) {
-            $queryBuilder = $queryBuilder->withCompletedLanguageFilter($completedLanguage);
         }
 
         if (!empty($request->query->get('id'))) {
