@@ -18,7 +18,7 @@ class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
     {
         $parameterBagReader = new ParameterBagReader($request->query);
 
-        $mainLanguage = $parameterBagReader->getStringFromQueryParameter(
+        $mainLanguage = $parameterBagReader->getStringFromParameter(
             'mainLanguage',
             null,
             $this->getLanguageCallback()
@@ -48,7 +48,7 @@ class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
      */
     private function getLanguagesFromQuery(ParameterBagReader $parameterBagReader, $queryParameter)
     {
-        return $parameterBagReader->getArrayFromQueryParameter(
+        return $parameterBagReader->getArrayFromParameter(
             $queryParameter,
             $this->getLanguageCallback()
         );

@@ -31,7 +31,7 @@ class ParameterBagReader
      * @param callable|null $callback
      * @return array
      */
-    public function getArrayFromQueryParameter($queryParameter, callable $callback = null)
+    public function getArrayFromParameter($queryParameter, callable $callback = null)
     {
         if (empty($this->parameterBag->get($queryParameter))) {
             return [];
@@ -52,7 +52,7 @@ class ParameterBagReader
      * @param callable $callback
      * @return mixed|null
      */
-    public function getStringFromQueryParameter(
+    public function getStringFromParameter(
         $parameterName,
         $defaultValue = null,
         callable $callback = null
@@ -80,7 +80,7 @@ class ParameterBagReader
      * @param string $delimiter
      * @return array
      */
-    public function getDelimitedStringFromQueryParameter(
+    public function getDelimitedStringFromParameter(
         $parameterName,
         $defaultValueAsString = null,
         callable $callback = null,
@@ -88,7 +88,7 @@ class ParameterBagReader
     ) {
         $callback = $this->ensureCallback($callback);
 
-        $asString = $this->getStringFromQueryParameter(
+        $asString = $this->getStringFromParameter(
             $parameterName,
             $defaultValueAsString
         );
@@ -107,7 +107,7 @@ class ParameterBagReader
      * @param string|null $defaultValueAsString
      * @return bool|null
      */
-    public function getBooleanFromQueryParameter(
+    public function getBooleanFromParameter(
         $parameterName,
         $defaultValueAsString = null
     ) {
@@ -117,7 +117,7 @@ class ParameterBagReader
             return $this->castMixedToBool($bool);
         };
 
-        return $this->getStringFromQueryParameter($parameterName, $defaultValueAsString, $callback);
+        return $this->getStringFromParameter($parameterName, $defaultValueAsString, $callback);
     }
 
     /**
@@ -125,7 +125,7 @@ class ParameterBagReader
      * @param string|null $defaultValueAsString
      * @return \DateTimeImmutable|null
      */
-    public function getDateTimeFromQueryParameter($queryParameter, $defaultValueAsString = null)
+    public function getDateTimeFromParameter($queryParameter, $defaultValueAsString = null)
     {
         $callback = function ($asString) use ($queryParameter) {
             $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
@@ -139,7 +139,7 @@ class ParameterBagReader
             return $asDateTime;
         };
 
-        return $this->getStringFromQueryParameter($queryParameter, $defaultValueAsString, $callback);
+        return $this->getStringFromParameter($queryParameter, $defaultValueAsString, $callback);
     }
 
     /**

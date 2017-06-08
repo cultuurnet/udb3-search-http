@@ -11,48 +11,48 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @test
-     * @dataProvider arrayQueryParameterDataProvider
+     * @dataProvider arrayParameterDataProvider
      *
-     * @param array $queryParameters
+     * @param array $parameters
      * @param string $parameterName
      * @param array $expectedScalarValues
      */
-    public function it_should_parse_a_query_parameter_as_an_array(
-        array $queryParameters,
+    public function it_should_parse_a_parameter_as_an_array(
+        array $parameters,
         $parameterName,
         array $expectedScalarValues
     ) {
-        $parameterBag = new ParameterBagReader(new ParameterBag($queryParameters));
-        $actualScalarValues = $parameterBag->getArrayFromQueryParameter($parameterName);
+        $parameterBag = new ParameterBagReader(new ParameterBag($parameters));
+        $actualScalarValues = $parameterBag->getArrayFromParameter($parameterName);
         $this->assertEquals($expectedScalarValues, $actualScalarValues);
     }
 
     /**
      * @test
-     * @dataProvider arrayQueryParameterDataProvider
+     * @dataProvider arrayParameterDataProvider
      *
-     * @param array $queryParameters
+     * @param array $parameters
      * @param string $parameterName
      * @param array $expectedScalarValues
      * @param callable $callback
      * @param array $expectedCastedValues
      */
-    public function it_should_apply_an_optional_callback_to_each_value_of_a_query_parameter(
-        array $queryParameters,
+    public function it_should_apply_an_optional_callback_to_each_value_of_a_parameter(
+        array $parameters,
         $parameterName,
         array $expectedScalarValues,
         callable $callback,
         array $expectedCastedValues
     ) {
-        $parameterBag = new ParameterBagReader(new ParameterBag($queryParameters));
-        $actualCastedValues = $parameterBag->getArrayFromQueryParameter($parameterName, $callback);
+        $parameterBag = new ParameterBagReader(new ParameterBag($parameters));
+        $actualCastedValues = $parameterBag->getArrayFromParameter($parameterName, $callback);
         $this->assertEquals($expectedCastedValues, $actualCastedValues);
     }
 
     /**
      * @return array
      */
-    public function arrayQueryParameterDataProvider()
+    public function arrayParameterDataProvider()
     {
         $callback = function ($label) {
             return new LabelName($label);
@@ -60,42 +60,42 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
 
         return [
             [
-                'query' => ['labels' => ['UiTPASLeuven', 'Paspartoe']],
+                'parameters' => ['labels' => ['UiTPASLeuven', 'Paspartoe']],
                 'parameter' => 'labels',
                 'values' => ['UiTPASLeuven', 'Paspartoe'],
                 'callback' => $callback,
                 'casted' => [new LabelName('UiTPASLeuven'), new LabelName('Paspartoe')],
             ],
             [
-                'query' => ['labels' => ['UiTPASLeuven']],
+                'parameters' => ['labels' => ['UiTPASLeuven']],
                 'parameter' => 'labels',
                 'values' => ['UiTPASLeuven'],
                 'callback' => $callback,
                 'casted' => [new LabelName('UiTPASLeuven')],
             ],
             [
-                'query' => ['labels' => 'UiTPASLeuven'],
+                'parameters' => ['labels' => 'UiTPASLeuven'],
                 'parameter' => 'labels',
                 'values' => ['UiTPASLeuven'],
                 'callback' => $callback,
                 'casted' => [new LabelName('UiTPASLeuven')],
             ],
             [
-                'query' => ['labels' => []],
+                'parameters' => ['labels' => []],
                 'parameter' => 'labels',
                 'values' => [],
                 'callback' => $callback,
                 'casted' => [],
             ],
             [
-                'query' => ['labels' => null],
+                'parameters' => ['labels' => null],
                 'parameter' => 'labels',
                 'values' => [],
                 'callback' => $callback,
                 'casted' => [],
             ],
             [
-                'query' => [],
+                'parameters' => [],
                 'parameter' => 'labels',
                 'values' => [],
                 'callback' => $callback,
@@ -107,11 +107,11 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function it_should_parse_a_query_parameter_as_a_single_string()
+    public function it_should_parse_a_parameter_as_a_single_string()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'DRAFT']));
         $expected = 'DRAFT';
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus');
+        $actual = $parameterBag->getStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -127,7 +127,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = new WorkflowStatus('DRAFT');
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', null, $callback);
+        $actual = $parameterBag->getStringFromParameter('workflowStatus', null, $callback);
 
         $this->assertTrue($expected->sameValueAs($actual));
     }
@@ -144,7 +144,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $default = 'APPROVED';
 
         $expected = 'APPROVED';
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', $default);
+        $actual = $parameterBag->getStringFromParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -162,7 +162,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = new WorkflowStatus('APPROVED');
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', $default, $callback);
+        $actual = $parameterBag->getStringFromParameter('workflowStatus', $default, $callback);
 
         $this->assertTrue($expected->sameValueAs($actual));
     }
@@ -173,7 +173,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     public function it_should_return_null_for_a_single_string_parameter_if_the_parameter_value_is_a_wildcard()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => '*']));
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus');
+        $actual = $parameterBag->getStringFromParameter('workflowStatus');
         $this->assertNull($actual);
     }
 
@@ -183,7 +183,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     public function it_should_return_null_for_a_single_string_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag([]));
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus');
+        $actual = $parameterBag->getStringFromParameter('workflowStatus');
         $this->assertNull($actual);
     }
 
@@ -195,7 +195,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = 'APPROVED';
 
-        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', $default);
+        $actual = $parameterBag->getStringFromParameter('workflowStatus', $default);
 
         $this->assertNull($actual);
     }
@@ -203,11 +203,11 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function it_should_parse_a_query_parameter_as_a_delimited_string_and_return_an_array()
+    public function it_should_parse_a_parameter_as_a_delimited_string_and_return_an_array()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus');
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -223,7 +223,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = [new WorkflowStatus('READY_FOR_VALIDATION'), new WorkflowStatus('APPROVED')];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', null, $callback);
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', null, $callback);
 
         $this->assertArrayContentsAreEqual($expected, $actual);
     }
@@ -240,7 +240,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', $default);
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -258,7 +258,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = [new WorkflowStatus('READY_FOR_VALIDATION'), new WorkflowStatus('APPROVED')];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', $default, $callback);
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', $default, $callback);
 
         $this->assertArrayContentsAreEqual($expected, $actual);
     }
@@ -270,7 +270,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => '*']));
         $expected = [];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus');
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -284,7 +284,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
 
         $parameterBag = new ParameterBagReader(new ParameterBag([]));
         $expected = [];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus');
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -300,7 +300,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = [];
-        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', $default);
+        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -309,15 +309,15 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      * @test
      * @dataProvider booleanDataProvider
      *
-     * @param mixed $queryParameterValue
+     * @param mixed $parameterValue
      * @param bool|null $expectedValue
      */
-    public function it_should_parse_a_boolean_value_from_a_query_parameter(
-        $queryParameterValue,
+    public function it_should_parse_a_boolean_value_from_a_parameter(
+        $parameterValue,
         $expectedValue
     ) {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => $queryParameterValue]));
-        $actualValue = $parameterBag->getBooleanFromQueryParameter('uitpas');
+        $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => $parameterValue]));
+        $actualValue = $parameterBag->getBooleanFromParameter('uitpas');
         $this->assertTrue($expectedValue === $actualValue);
     }
 
@@ -390,7 +390,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $default = 'true';
 
         $expected = true;
-        $actual = $parameterBag->getBooleanFromQueryParameter('uitpas', $default);
+        $actual = $parameterBag->getBooleanFromParameter('uitpas', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -401,7 +401,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     public function it_should_return_null_for_a_boolean_parameter_if_the_parameter_value_is_a_wildcard()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => '*']));
-        $actual = $parameterBag->getBooleanFromQueryParameter('uitpas');
+        $actual = $parameterBag->getBooleanFromParameter('uitpas');
         $this->assertNull($actual);
     }
 
@@ -411,7 +411,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     public function it_should_return_null_for_a_boolean_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag([]));
-        $actual = $parameterBag->getStringFromQueryParameter('uitpas');
+        $actual = $parameterBag->getStringFromParameter('uitpas');
         $this->assertNull($actual);
     }
 
@@ -423,7 +423,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = true;
 
-        $actual = $parameterBag->getBooleanFromQueryParameter('uitpas', $default);
+        $actual = $parameterBag->getBooleanFromParameter('uitpas', $default);
 
         $this->assertNull($actual);
     }
@@ -431,11 +431,11 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
-    public function it_should_parse_a_datetime_from_a_query_parameter()
+    public function it_should_parse_a_datetime_from_a_parameter()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '2017-04-26T12:20:05+01:00']));
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
-        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom');
+        $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
 
         $this->assertDateTimeEquals($expected, $actual);
     }
@@ -452,7 +452,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $default = '2017-04-26T12:20:05+01:00';
 
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
-        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom', $default);
+        $actual = $parameterBag->getDateTimeFromParameter('availableFrom', $default);
 
         $this->assertDateTimeEquals($expected, $actual);
     }
@@ -463,7 +463,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     public function it_should_return_null_for_a_datetime_parameter_if_the_parameter_value_is_a_wildcard()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '*']));
-        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom');
+        $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
         $this->assertNull($actual);
     }
 
@@ -473,7 +473,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     public function it_should_return_null_for_a_datetime_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
         $parameterBag = new ParameterBagReader(new ParameterBag([]));
-        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom');
+        $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
         $this->assertNull($actual);
     }
 
@@ -485,7 +485,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = '2017-04-26T12:20:05+01:00';
 
-        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom', $default);
+        $actual = $parameterBag->getDateTimeFromParameter('availableFrom', $default);
 
         $this->assertNull($actual);
     }
@@ -502,7 +502,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
             'availableFrom should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00'
         );
 
-        $parameterBag->getDateTimeFromQueryParameter('availableFrom');
+        $parameterBag->getDateTimeFromParameter('availableFrom');
     }
 
     /**
