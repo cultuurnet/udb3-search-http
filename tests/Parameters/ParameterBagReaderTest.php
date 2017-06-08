@@ -205,7 +205,12 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_parameter_as_a_delimited_string_and_return_an_array()
     {
-        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
+        $parameterBag = new SymfonyParameterBagAdapter(
+            new ParameterBag(
+                ['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']
+            )
+        );
+
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
         $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
@@ -216,7 +221,11 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_each_value_of_the_delimited_string_array()
     {
-        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
+        $parameterBag = new SymfonyParameterBagAdapter(
+            new ParameterBag(
+                ['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']
+            )
+        );
 
         $callback = function ($workflowStatus) {
             return new WorkflowStatus($workflowStatus);
@@ -433,7 +442,12 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_datetime_from_a_parameter()
     {
-        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['availableFrom' => '2017-04-26T12:20:05+01:00']));
+        $parameterBag = new SymfonyParameterBagAdapter(
+            new ParameterBag(
+                ['availableFrom' => '2017-04-26T12:20:05+01:00']
+            )
+        );
+
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
         $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
 
