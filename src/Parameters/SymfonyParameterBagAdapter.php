@@ -2,7 +2,6 @@
 
 namespace CultuurNet\UDB3\Search\Http\Parameters;
 
-use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
 class SymfonyParameterBagAdapter implements ParameterBagInterface

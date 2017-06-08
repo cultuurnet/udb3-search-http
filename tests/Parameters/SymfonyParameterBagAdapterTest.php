@@ -7,7 +7,7 @@ use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 
-class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
+class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @test
