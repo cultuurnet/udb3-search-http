@@ -37,13 +37,10 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
             return [];
         }
 
+        $callback = $this->ensureCallback($callback);
         $values = (array) $this->parameterBag->get($queryParameter);
 
-        if (!is_null($callback)) {
-            $values = array_map($callback, $values);
-        }
-
-        return $values;
+        return array_map($callback, $values);
     }
 
     /**
@@ -58,16 +55,18 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
         callable $callback = null
     ) {
         $parameterValue = $this->parameterBag->get($parameterName, null);
-        $defaultsEnabled = $this->areDefaultFiltersEnabled();
         $callback = $this->ensureCallback($callback);
 
-        if ($parameterValue === $this->resetValue ||
-            is_null($parameterValue) && (is_null($defaultValue) || !$defaultsEnabled)) {
+        if ($parameterValue === $this->resetValue) {
             return null;
         }
 
-        if (is_null($parameterValue)) {
+        if (is_null($parameterValue) && !is_null($defaultValue) && $this->areDefaultFiltersEnabled()) {
             $parameterValue = $defaultValue;
+        }
+
+        if (is_null($parameterValue)) {
+            return null;
         }
 
         return call_user_func($callback, $parameterValue);
@@ -111,10 +110,12 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
         $parameterName,
         $defaultValueAsString = null
     ) {
-        $callback = function ($bool) {
-            // This is a private method so we can't pass it directly as the
-            // callback method.
-            return $this->castMixedToBool($bool);
+        $callback = function ($mixed) {
+            if (is_null($mixed) || (is_string($mixed) && strlen($mixed) === 0)) {
+                return null;
+            }
+
+            return filter_var($mixed, FILTER_VALIDATE_BOOLEAN);
         };
 
         return $this->getStringFromParameter($parameterName, $defaultValueAsString, $callback);
@@ -147,7 +148,13 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
      */
     private function areDefaultFiltersEnabled()
     {
-        $disabled = $this->castMixedToBool($this->parameterBag->get('disableDefaultFilters', false));
+        // Don't pass a default value here as it will cause an infinite loop.
+        $disabled = $this->getBooleanFromParameter('disableDefaultFilters');
+
+        // Instead check if the returned value is null, and if so always set it
+        // to false as it means the disableDefaultFilters parameter is not set.
+        $disabled = is_null($disabled) ? false : $disabled;
+
         return !$disabled;
     }
 
@@ -166,18 +173,5 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
         };
 
         return $passthroughCallback;
-    }
-
-    /**
-     * @param mixed $mixed
-     * @return bool|null
-     */
-    private function castMixedToBool($mixed)
-    {
-        if (is_null($mixed) || (is_string($mixed) && strlen($mixed) === 0)) {
-            return null;
-        }
-
-        return filter_var($mixed, FILTER_VALIDATE_BOOLEAN);
     }
 }
