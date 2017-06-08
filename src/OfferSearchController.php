@@ -34,6 +34,11 @@ use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 
+/**
+ * @todo Extract more parsing functionality to OfferRequestParserInterface
+ *   implementations.
+ * @see https://jira.uitdatabank.be/browse/III-2144
+ */
 class OfferSearchController
 {
     /**
