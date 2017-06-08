@@ -66,48 +66,76 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
     /**
      * @param Request $request
      * @param string $parameterName
-     * @param string|null $defaultValue
+     * @param string|null $defaultValueAsString
      * @param callable|null $callback
+     * @param string $delimiter
+     * @return array
+     */
+    protected function getDelimitedStringFromQueryParameter(
+        Request $request,
+        $parameterName,
+        $defaultValueAsString = null,
+        callable $callback = null,
+        $delimiter = ','
+    ) {
+        $callback = $this->ensureCallback($callback);
+
+        $asString = $this->getStringFromQueryParameter(
+            $request,
+            $parameterName,
+            $defaultValueAsString
+        );
+
+        if (is_null($asString)) {
+            return [];
+        }
+
+        $asArray = explode($delimiter, $asString);
+
+        return array_map($callback, $asArray);
+    }
+
+    /**
+     * @param Request $request
+     * @param string $parameterName
+     * @param string|null $defaultValueAsString
      * @return bool|null
      */
     protected function getBooleanFromQueryParameter(
         Request $request,
         $parameterName,
-        $defaultValue = null,
-        callable $callback = null
+        $defaultValueAsString = null
     ) {
-        $callback = $this->ensureCallback($callback);
+        $callback = function ($bool) {
+            // This is a private method so we can't pass it directly as the
+            // callback method.
+            return $this->castMixedToBool($bool);
+        };
 
-        $asString = $this->getStringFromQueryParameter($request, $parameterName, $defaultValue);
-        $asBool = $this->castMixedToBool($asString);
-
-        return call_user_func($callback, $asBool);
+        return $this->getStringFromQueryParameter($request, $parameterName, $defaultValueAsString, $callback);
     }
 
     /**
      * @param Request $request
      * @param string $queryParameter
-     * @param string|null $defaultValue
+     * @param string|null $defaultValueAsString
      * @return \DateTimeImmutable|null
      */
-    protected function getDateTimeFromQueryParameter(Request $request, $queryParameter, $defaultValue = null)
+    protected function getDateTimeFromQueryParameter(Request $request, $queryParameter, $defaultValueAsString = null)
     {
-        return $this->getStringFromQueryParameter(
-            $request,
-            $queryParameter,
-            $defaultValue,
-            function ($asString) use ($queryParameter) {
-                $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
+        $callback = function ($asString) use ($queryParameter) {
+            $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
 
-                if (!$asDateTime) {
-                    throw new \InvalidArgumentException(
-                        "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
-                    );
-                }
-
-                return $asDateTime;
+            if (!$asDateTime) {
+                throw new \InvalidArgumentException(
+                    "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
+                );
             }
-        );
+
+            return $asDateTime;
+        };
+
+        return $this->getStringFromQueryParameter($request, $queryParameter, $defaultValueAsString, $callback);
     }
 
     /**
