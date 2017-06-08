@@ -3,25 +3,12 @@
 namespace CultuurNet\UDB3\Search\Http\Offer\RequestParser;
 
 use CultuurNet\UDB3\Language;
-use CultuurNet\UDB3\Search\Http\ParameterBagParser;
+use CultuurNet\UDB3\Search\Http\ParameterBagReader;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 
 class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
 {
-    /**
-     * @var ParameterBagParser
-     */
-    private $parameterBagParser;
-
-    /**
-     * @param ParameterBagParser $parameterBagParser
-     */
-    public function __construct(ParameterBagParser $parameterBagParser)
-    {
-        $this->parameterBagParser = $parameterBagParser;
-    }
-
     /**
      * @param Request $request
      * @param OfferQueryBuilderInterface $offerQueryBuilder
@@ -29,8 +16,9 @@ class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
      */
     public function parse(Request $request, OfferQueryBuilderInterface $offerQueryBuilder)
     {
-        $mainLanguage = $this->parameterBagParser->getStringFromQueryParameter(
-            $request,
+        $parameterBagReader = new ParameterBagReader($request->query);
+
+        $mainLanguage = $parameterBagReader->getStringFromQueryParameter(
             'mainLanguage',
             null,
             $this->getLanguageCallback()
@@ -40,12 +28,12 @@ class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
             $offerQueryBuilder = $offerQueryBuilder->withMainLanguageFilter($mainLanguage);
         }
 
-        $languages = $this->getLanguagesFromQuery($request, 'languages');
+        $languages = $this->getLanguagesFromQuery($parameterBagReader, 'languages');
         foreach ($languages as $language) {
             $offerQueryBuilder = $offerQueryBuilder->withLanguageFilter($language);
         }
 
-        $completedLanguages = $this->getLanguagesFromQuery($request, 'completedLanguages');
+        $completedLanguages = $this->getLanguagesFromQuery($parameterBagReader, 'completedLanguages');
         foreach ($completedLanguages as $completedLanguage) {
             $offerQueryBuilder = $offerQueryBuilder->withCompletedLanguageFilter($completedLanguage);
         }
@@ -54,14 +42,13 @@ class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
     }
 
     /**
-     * @param Request $request
+     * @param ParameterBagReader $parameterBagReader
      * @param string $queryParameter
      * @return Language[]
      */
-    private function getLanguagesFromQuery(Request $request, $queryParameter)
+    private function getLanguagesFromQuery(ParameterBagReader $parameterBagReader, $queryParameter)
     {
-        return $this->parameterBagParser->getArrayFromQueryParameter(
-            $request,
+        return $parameterBagReader->getArrayFromQueryParameter(
             $queryParameter,
             $this->getLanguageCallback()
         );

@@ -85,7 +85,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
-        $this->requestParser = new CompositeOfferRequestParser(new ParameterBagParser());
+        $this->requestParser = new CompositeOfferRequestParser();
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 
         $this->regionIndexName = new StringLiteral('geoshapes');

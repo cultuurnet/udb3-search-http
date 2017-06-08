@@ -2,36 +2,42 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
-use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\ParameterBag;
 
-class ParameterBagParser
+class ParameterBagReader
 {
+    /**
+     * @var ParameterBag
+     */
+    private $parameterBag;
+
     /**
      * @var string
      */
     private $resetValue;
 
     /**
+     * @param ParameterBag $parameterBag
      * @param string $resetValue
      */
-    public function __construct($resetValue = '*')
+    public function __construct(ParameterBag $parameterBag, $resetValue = '*')
     {
+        $this->parameterBag = $parameterBag;
         $this->resetValue = $resetValue;
     }
 
     /**
-     * @param Request $request
      * @param string $queryParameter
      * @param callable|null $callback
      * @return array
      */
-    public function getArrayFromQueryParameter(Request $request, $queryParameter, callable $callback = null)
+    public function getArrayFromQueryParameter($queryParameter, callable $callback = null)
     {
-        if (empty($request->query->get($queryParameter))) {
+        if (empty($this->parameterBag->get($queryParameter))) {
             return [];
         }
 
-        $values = (array) $request->query->get($queryParameter);
+        $values = (array) $this->parameterBag->get($queryParameter);
 
         if (!is_null($callback)) {
             $values = array_map($callback, $values);
@@ -41,20 +47,18 @@ class ParameterBagParser
     }
 
     /**
-     * @param Request $request
      * @param string $parameterName
      * @param string|null $defaultValue
      * @param callable $callback
      * @return mixed|null
      */
     public function getStringFromQueryParameter(
-        Request $request,
         $parameterName,
         $defaultValue = null,
         callable $callback = null
     ) {
-        $parameterValue = $request->query->get($parameterName, null);
-        $defaultsEnabled = $this->areDefaultFiltersEnabled($request);
+        $parameterValue = $this->parameterBag->get($parameterName, null);
+        $defaultsEnabled = $this->areDefaultFiltersEnabled();
         $callback = $this->ensureCallback($callback);
 
         if ($parameterValue === $this->resetValue ||
@@ -70,7 +74,6 @@ class ParameterBagParser
     }
 
     /**
-     * @param Request $request
      * @param string $parameterName
      * @param string|null $defaultValueAsString
      * @param callable|null $callback
@@ -78,7 +81,6 @@ class ParameterBagParser
      * @return array
      */
     public function getDelimitedStringFromQueryParameter(
-        Request $request,
         $parameterName,
         $defaultValueAsString = null,
         callable $callback = null,
@@ -87,7 +89,6 @@ class ParameterBagParser
         $callback = $this->ensureCallback($callback);
 
         $asString = $this->getStringFromQueryParameter(
-            $request,
             $parameterName,
             $defaultValueAsString
         );
@@ -102,13 +103,11 @@ class ParameterBagParser
     }
 
     /**
-     * @param Request $request
      * @param string $parameterName
      * @param string|null $defaultValueAsString
      * @return bool|null
      */
     public function getBooleanFromQueryParameter(
-        Request $request,
         $parameterName,
         $defaultValueAsString = null
     ) {
@@ -118,16 +117,15 @@ class ParameterBagParser
             return $this->castMixedToBool($bool);
         };
 
-        return $this->getStringFromQueryParameter($request, $parameterName, $defaultValueAsString, $callback);
+        return $this->getStringFromQueryParameter($parameterName, $defaultValueAsString, $callback);
     }
 
     /**
-     * @param Request $request
      * @param string $queryParameter
      * @param string|null $defaultValueAsString
      * @return \DateTimeImmutable|null
      */
-    public function getDateTimeFromQueryParameter(Request $request, $queryParameter, $defaultValueAsString = null)
+    public function getDateTimeFromQueryParameter($queryParameter, $defaultValueAsString = null)
     {
         $callback = function ($asString) use ($queryParameter) {
             $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
@@ -141,16 +139,15 @@ class ParameterBagParser
             return $asDateTime;
         };
 
-        return $this->getStringFromQueryParameter($request, $queryParameter, $defaultValueAsString, $callback);
+        return $this->getStringFromQueryParameter($queryParameter, $defaultValueAsString, $callback);
     }
 
     /**
-     * @param Request $request
      * @return bool
      */
-    private function areDefaultFiltersEnabled(Request $request)
+    private function areDefaultFiltersEnabled()
     {
-        $disabled = $this->castMixedToBool($request->query->get('disableDefaultFilters', false));
+        $disabled = $this->castMixedToBool($this->parameterBag->get('disableDefaultFilters', false));
         return !$disabled;
     }
 

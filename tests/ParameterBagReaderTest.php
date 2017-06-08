@@ -4,20 +4,11 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
+use Symfony\Component\HttpFoundation\ParameterBag;
 use Symfony\Component\HttpFoundation\Request;
 
-class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
+class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
 {
-    /**
-     * @var ParameterBagParser
-     */
-    private $parser;
-
-    public function setUp()
-    {
-        $this->parser = new ParameterBagParser();
-    }
-
     /**
      * @test
      * @dataProvider arrayQueryParameterDataProvider
@@ -31,8 +22,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
         $parameterName,
         array $expectedScalarValues
     ) {
-        $request = new Request($queryParameters);
-        $actualScalarValues = $this->parser->getArrayFromQueryParameter($request, $parameterName);
+        $parameterBag = new ParameterBagReader(new ParameterBag($queryParameters));
+        $actualScalarValues = $parameterBag->getArrayFromQueryParameter($parameterName);
         $this->assertEquals($expectedScalarValues, $actualScalarValues);
     }
 
@@ -53,8 +44,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
         callable $callback,
         array $expectedCastedValues
     ) {
-        $request = new Request($queryParameters);
-        $actualCastedValues = $this->parser->getArrayFromQueryParameter($request, $parameterName, $callback);
+        $parameterBag = new ParameterBagReader(new ParameterBag($queryParameters));
+        $actualCastedValues = $parameterBag->getArrayFromQueryParameter($parameterName, $callback);
         $this->assertEquals($expectedCastedValues, $actualCastedValues);
     }
 
@@ -118,9 +109,9 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_query_parameter_as_a_single_string()
     {
-        $request = new Request(['workflowStatus' => 'DRAFT']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'DRAFT']));
         $expected = 'DRAFT';
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus');
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -129,14 +120,14 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_the_single_string_value()
     {
-        $request = new Request(['workflowStatus' => 'DRAFT']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'DRAFT']));
 
         $callback = function ($workflowStatus) {
             return new WorkflowStatus($workflowStatus);
         };
 
         $expected = new WorkflowStatus('DRAFT');
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus', null, $callback);
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', null, $callback);
 
         $this->assertTrue($expected->sameValueAs($actual));
     }
@@ -149,11 +140,11 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $request = new Request();
+        $parameterBag = new ParameterBagReader(new ParameterBag());
         $default = 'APPROVED';
 
         $expected = 'APPROVED';
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus', $default);
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -163,7 +154,7 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_the_single_string_default_value()
     {
-        $request = new Request();
+        $parameterBag = new ParameterBagReader(new ParameterBag());
         $default = 'APPROVED';
 
         $callback = function ($workflowStatus) {
@@ -171,7 +162,7 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = new WorkflowStatus('APPROVED');
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus', $default, $callback);
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', $default, $callback);
 
         $this->assertTrue($expected->sameValueAs($actual));
     }
@@ -181,8 +172,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_single_string_parameter_if_the_parameter_value_is_a_wildcard()
     {
-        $request = new Request(['workflowStatus' => '*']);
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus');
+        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => '*']));
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus');
         $this->assertNull($actual);
     }
 
@@ -191,8 +182,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_single_string_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
-        $request = new Request([]);
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus');
+        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus');
         $this->assertNull($actual);
     }
 
@@ -201,10 +192,10 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_single_string_parameter_if_it_is_is_empty_and_defaults_are_disabled()
     {
-        $request = new Request(['disableDefaultFilters' => true]);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = 'APPROVED';
 
-        $actual = $this->parser->getStringFromQueryParameter($request, 'workflowStatus', $default);
+        $actual = $parameterBag->getStringFromQueryParameter('workflowStatus', $default);
 
         $this->assertNull($actual);
     }
@@ -214,9 +205,9 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_query_parameter_as_a_delimited_string_and_return_an_array()
     {
-        $request = new Request(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus');
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -225,14 +216,14 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_each_value_of_the_delimited_string_array()
     {
-        $request = new Request(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
 
         $callback = function ($workflowStatus) {
             return new WorkflowStatus($workflowStatus);
         };
 
         $expected = [new WorkflowStatus('READY_FOR_VALIDATION'), new WorkflowStatus('APPROVED')];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus', null, $callback);
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', null, $callback);
 
         $this->assertArrayContentsAreEqual($expected, $actual);
     }
@@ -245,11 +236,11 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $request = new Request();
+        $parameterBag = new ParameterBagReader(new ParameterBag());
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus', $default);
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -259,7 +250,7 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_each_value_of_the_delimited_string_default_array()
     {
-        $request = new Request();
+        $parameterBag = new ParameterBagReader(new ParameterBag());
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $callback = function ($workflowStatus) {
@@ -267,7 +258,7 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = [new WorkflowStatus('READY_FOR_VALIDATION'), new WorkflowStatus('APPROVED')];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus', $default, $callback);
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', $default, $callback);
 
         $this->assertArrayContentsAreEqual($expected, $actual);
     }
@@ -277,9 +268,9 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_an_empty_array_for_a_delimited_string_parameter_if_the_string_value_is_a_wildcard()
     {
-        $request = new Request(['workflowStatus' => '*']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => '*']));
         $expected = [];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus');
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -291,9 +282,9 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $request = new Request([]);
+        $parameterBag = new ParameterBagReader(new ParameterBag([]));
         $expected = [];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus');
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -305,11 +296,11 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $request = new Request(['disableDefaultFilters' => true]);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = [];
-        $actual = $this->parser->getDelimitedStringFromQueryParameter($request, 'workflowStatus', $default);
+        $actual = $parameterBag->getDelimitedStringFromQueryParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -325,8 +316,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
         $queryParameterValue,
         $expectedValue
     ) {
-        $request = new Request(['uitpas' => $queryParameterValue]);
-        $actualValue = $this->parser->getBooleanFromQueryParameter($request, 'uitpas');
+        $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => $queryParameterValue]));
+        $actualValue = $parameterBag->getBooleanFromQueryParameter('uitpas');
         $this->assertTrue($expectedValue === $actualValue);
     }
 
@@ -395,11 +386,11 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $request = new Request();
+        $parameterBag = new ParameterBagReader(new ParameterBag());
         $default = 'true';
 
         $expected = true;
-        $actual = $this->parser->getBooleanFromQueryParameter($request, 'uitpas', $default);
+        $actual = $parameterBag->getBooleanFromQueryParameter('uitpas', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -409,8 +400,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_boolean_parameter_if_the_parameter_value_is_a_wildcard()
     {
-        $request = new Request(['uitpas' => '*']);
-        $actual = $this->parser->getBooleanFromQueryParameter($request, 'uitpas');
+        $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => '*']));
+        $actual = $parameterBag->getBooleanFromQueryParameter('uitpas');
         $this->assertNull($actual);
     }
 
@@ -419,8 +410,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_boolean_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
-        $request = new Request([]);
-        $actual = $this->parser->getStringFromQueryParameter($request, 'uitpas');
+        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $actual = $parameterBag->getStringFromQueryParameter('uitpas');
         $this->assertNull($actual);
     }
 
@@ -429,10 +420,10 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_boolean_parameter_if_it_is_is_empty_and_defaults_are_disabled()
     {
-        $request = new Request(['disableDefaultFilters' => true]);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = true;
 
-        $actual = $this->parser->getBooleanFromQueryParameter($request, 'uitpas', $default);
+        $actual = $parameterBag->getBooleanFromQueryParameter('uitpas', $default);
 
         $this->assertNull($actual);
     }
@@ -442,9 +433,9 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_datetime_from_a_query_parameter()
     {
-        $request = new Request(['availableFrom' => '2017-04-26T12:20:05+01:00']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '2017-04-26T12:20:05+01:00']));
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
-        $actual = $this->parser->getDateTimeFromQueryParameter($request, 'availableFrom');
+        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom');
 
         $this->assertDateTimeEquals($expected, $actual);
     }
@@ -457,11 +448,11 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $request = new Request();
+        $parameterBag = new ParameterBagReader(new ParameterBag());
         $default = '2017-04-26T12:20:05+01:00';
 
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
-        $actual = $this->parser->getDateTimeFromQueryParameter($request, 'availableFrom', $default);
+        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom', $default);
 
         $this->assertDateTimeEquals($expected, $actual);
     }
@@ -471,8 +462,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_datetime_parameter_if_the_parameter_value_is_a_wildcard()
     {
-        $request = new Request(['availableFrom' => '*']);
-        $actual = $this->parser->getDateTimeFromQueryParameter($request, 'availableFrom');
+        $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '*']));
+        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom');
         $this->assertNull($actual);
     }
 
@@ -481,8 +472,8 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_datetime_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
-        $request = new Request([]);
-        $actual = $this->parser->getDateTimeFromQueryParameter($request, 'availableFrom');
+        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom');
         $this->assertNull($actual);
     }
 
@@ -491,10 +482,10 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_datetime_parameter_if_it_is_is_empty_and_defaults_are_disabled()
     {
-        $request = new Request(['disableDefaultFilters' => true]);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
         $default = '2017-04-26T12:20:05+01:00';
 
-        $actual = $this->parser->getDateTimeFromQueryParameter($request, 'availableFrom', $default);
+        $actual = $parameterBag->getDateTimeFromQueryParameter('availableFrom', $default);
 
         $this->assertNull($actual);
     }
@@ -504,14 +495,14 @@ class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_throw_an_exception_if_a_datetime_parameter_can_not_be_parsed()
     {
-        $request = new Request(['availableFrom' => '26/04/2017']);
+        $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '26/04/2017']));
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
             'availableFrom should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00'
         );
 
-        $this->parser->getDateTimeFromQueryParameter($request, 'availableFrom');
+        $parameterBag->getDateTimeFromQueryParameter('availableFrom');
     }
 
     /**
