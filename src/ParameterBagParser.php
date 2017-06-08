@@ -1,17 +1,23 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http\Offer\RequestParser;
+namespace CultuurNet\UDB3\Search\Http;
 
 use Symfony\Component\HttpFoundation\Request;
 
-abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
+class ParameterBagParser
 {
     /**
-     * Used to reset filters with default values.
-     * Eg., countryCode is default BE but can be reset by specifying
-     * ?countryCode=*
+     * @var string
      */
-    const QUERY_PARAMETER_RESET_VALUE = '*';
+    private $resetValue;
+
+    /**
+     * @param string $resetValue
+     */
+    public function __construct($resetValue = '*')
+    {
+        $this->resetValue = $resetValue;
+    }
 
     /**
      * @param Request $request
@@ -19,7 +25,7 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
      * @param callable|null $callback
      * @return array
      */
-    protected function getArrayFromQueryParameter(Request $request, $queryParameter, callable $callback = null)
+    public function getArrayFromQueryParameter(Request $request, $queryParameter, callable $callback = null)
     {
         if (empty($request->query->get($queryParameter))) {
             return [];
@@ -41,7 +47,7 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
      * @param callable $callback
      * @return mixed|null
      */
-    protected function getStringFromQueryParameter(
+    public function getStringFromQueryParameter(
         Request $request,
         $parameterName,
         $defaultValue = null,
@@ -51,7 +57,7 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
         $defaultsEnabled = $this->areDefaultFiltersEnabled($request);
         $callback = $this->ensureCallback($callback);
 
-        if ($parameterValue === self::QUERY_PARAMETER_RESET_VALUE ||
+        if ($parameterValue === $this->resetValue ||
             is_null($parameterValue) && (is_null($defaultValue) || !$defaultsEnabled)) {
             return null;
         }
@@ -71,7 +77,7 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
      * @param string $delimiter
      * @return array
      */
-    protected function getDelimitedStringFromQueryParameter(
+    public function getDelimitedStringFromQueryParameter(
         Request $request,
         $parameterName,
         $defaultValueAsString = null,
@@ -101,7 +107,7 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
      * @param string|null $defaultValueAsString
      * @return bool|null
      */
-    protected function getBooleanFromQueryParameter(
+    public function getBooleanFromQueryParameter(
         Request $request,
         $parameterName,
         $defaultValueAsString = null
@@ -121,7 +127,7 @@ abstract class AbstractOfferRequestParser implements OfferRequestParserInterface
      * @param string|null $defaultValueAsString
      * @return \DateTimeImmutable|null
      */
-    protected function getDateTimeFromQueryParameter(Request $request, $queryParameter, $defaultValueAsString = null)
+    public function getDateTimeFromQueryParameter(Request $request, $queryParameter, $defaultValueAsString = null)
     {
         $callback = function ($asString) use ($queryParameter) {
             $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);

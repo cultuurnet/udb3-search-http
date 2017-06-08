@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http\Offer\RequestParser;
 
+use CultuurNet\UDB3\Search\Http\ParameterBagParser;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -12,10 +13,13 @@ class CompositeOfferRequestParser implements OfferRequestParserInterface
      */
     private $parsers = [];
 
-    public function __construct()
+    /**
+     * @param ParameterBagParser $parameterBagParser
+     */
+    public function __construct(ParameterBagParser $parameterBagParser)
     {
         $this->parsers = [
-            new DocumentLanguageOfferRequestParser(),
+            new DocumentLanguageOfferRequestParser($parameterBagParser),
         ];
     }
 

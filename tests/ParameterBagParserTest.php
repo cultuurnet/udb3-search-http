@@ -1,21 +1,21 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http\Offer\RequestParser;
+namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use Symfony\Component\HttpFoundation\Request;
 
-class AbstractOfferRequestParserTest extends \PHPUnit_Framework_TestCase
+class ParameterBagParserTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var MockOfferRequestParser
+     * @var ParameterBagParser
      */
     private $parser;
 
     public function setUp()
     {
-        $this->parser = new MockOfferRequestParser();
+        $this->parser = new ParameterBagParser();
     }
 
     /**
