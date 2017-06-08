@@ -18,49 +18,28 @@ class DocumentLanguageOfferRequestParser implements OfferRequestParserInterface
     {
         $parameterBagReader = new SymfonyParameterBagAdapter($request->query);
 
-        $mainLanguage = $parameterBagReader->getStringFromParameter(
-            'mainLanguage',
-            null,
-            $this->getLanguageCallback()
-        );
+        $languageCallback = function ($value) {
+            return new Language($value);
+        };
 
+        // Add mainLanguage parameter as a filter.
+        $mainLanguage = $parameterBagReader->getStringFromParameter('mainLanguage', null, $languageCallback);
         if ($mainLanguage) {
             $offerQueryBuilder = $offerQueryBuilder->withMainLanguageFilter($mainLanguage);
         }
 
-        $languages = $this->getLanguagesFromQuery($parameterBagReader, 'languages');
+        // Add languages parameter(s) as filter(s).
+        $languages = $parameterBagReader->getArrayFromParameter('languages', $languageCallback);
         foreach ($languages as $language) {
             $offerQueryBuilder = $offerQueryBuilder->withLanguageFilter($language);
         }
 
-        $completedLanguages = $this->getLanguagesFromQuery($parameterBagReader, 'completedLanguages');
+        // Add completedLanguages parameter(s) as filter(s).
+        $completedLanguages = $parameterBagReader->getArrayFromParameter('completedLanguages', $languageCallback);
         foreach ($completedLanguages as $completedLanguage) {
             $offerQueryBuilder = $offerQueryBuilder->withCompletedLanguageFilter($completedLanguage);
         }
 
         return $offerQueryBuilder;
-    }
-
-    /**
-     * @param SymfonyParameterBagAdapter $parameterBagReader
-     * @param string $queryParameter
-     * @return Language[]
-     */
-    private function getLanguagesFromQuery(SymfonyParameterBagAdapter $parameterBagReader, $queryParameter)
-    {
-        return $parameterBagReader->getArrayFromParameter(
-            $queryParameter,
-            $this->getLanguageCallback()
-        );
-    }
-
-    /**
-     * @return \Closure
-     */
-    private function getLanguageCallback()
-    {
-        return function ($value) {
-            return new Language($value);
-        };
     }
 }
