@@ -1,10 +1,11 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http;
+namespace CultuurNet\UDB3\Search\Http\Parameters;
 
+use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
 use Symfony\Component\HttpFoundation\ParameterBag;
 
-class ParameterBagReader
+class SymfonyParameterBagAdapter implements ParameterBagInterface
 {
     /**
      * @var ParameterBag

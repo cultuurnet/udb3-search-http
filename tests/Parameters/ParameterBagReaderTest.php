@@ -1,6 +1,6 @@
 <?php
 
-namespace CultuurNet\UDB3\Search\Http;
+namespace CultuurNet\UDB3\Search\Http\Parameters;
 
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
@@ -22,7 +22,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $parameterName,
         array $expectedScalarValues
     ) {
-        $parameterBag = new ParameterBagReader(new ParameterBag($parameters));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag($parameters));
         $actualScalarValues = $parameterBag->getArrayFromParameter($parameterName);
         $this->assertEquals($expectedScalarValues, $actualScalarValues);
     }
@@ -44,7 +44,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         callable $callback,
         array $expectedCastedValues
     ) {
-        $parameterBag = new ParameterBagReader(new ParameterBag($parameters));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag($parameters));
         $actualCastedValues = $parameterBag->getArrayFromParameter($parameterName, $callback);
         $this->assertEquals($expectedCastedValues, $actualCastedValues);
     }
@@ -109,7 +109,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_parameter_as_a_single_string()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'DRAFT']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'DRAFT']));
         $expected = 'DRAFT';
         $actual = $parameterBag->getStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
@@ -120,7 +120,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_the_single_string_value()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'DRAFT']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'DRAFT']));
 
         $callback = function ($workflowStatus) {
             return new WorkflowStatus($workflowStatus);
@@ -140,7 +140,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $parameterBag = new ParameterBagReader(new ParameterBag());
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag());
         $default = 'APPROVED';
 
         $expected = 'APPROVED';
@@ -154,7 +154,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_the_single_string_default_value()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag());
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag());
         $default = 'APPROVED';
 
         $callback = function ($workflowStatus) {
@@ -172,7 +172,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_single_string_parameter_if_the_parameter_value_is_a_wildcard()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => '*']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => '*']));
         $actual = $parameterBag->getStringFromParameter('workflowStatus');
         $this->assertNull($actual);
     }
@@ -182,7 +182,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_single_string_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag([]));
         $actual = $parameterBag->getStringFromParameter('workflowStatus');
         $this->assertNull($actual);
     }
@@ -192,7 +192,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_single_string_parameter_if_it_is_is_empty_and_defaults_are_disabled()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['disableDefaultFilters' => true]));
         $default = 'APPROVED';
 
         $actual = $parameterBag->getStringFromParameter('workflowStatus', $default);
@@ -205,7 +205,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_parameter_as_a_delimited_string_and_return_an_array()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
         $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
@@ -216,7 +216,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_each_value_of_the_delimited_string_array()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'READY_FOR_VALIDATION,APPROVED']));
 
         $callback = function ($workflowStatus) {
             return new WorkflowStatus($workflowStatus);
@@ -236,7 +236,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $parameterBag = new ParameterBagReader(new ParameterBag());
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag());
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
@@ -250,7 +250,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_apply_a_callback_to_each_value_of_the_delimited_string_default_array()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag());
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag());
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $callback = function ($workflowStatus) {
@@ -268,7 +268,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_an_empty_array_for_a_delimited_string_parameter_if_the_string_value_is_a_wildcard()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['workflowStatus' => '*']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => '*']));
         $expected = [];
         $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
@@ -282,7 +282,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag([]));
         $expected = [];
         $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
@@ -296,7 +296,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['disableDefaultFilters' => true]));
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = [];
@@ -316,7 +316,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
         $parameterValue,
         $expectedValue
     ) {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => $parameterValue]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['uitpas' => $parameterValue]));
         $actualValue = $parameterBag->getBooleanFromParameter('uitpas');
         $this->assertTrue($expectedValue === $actualValue);
     }
@@ -386,7 +386,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $parameterBag = new ParameterBagReader(new ParameterBag());
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag());
         $default = 'true';
 
         $expected = true;
@@ -400,7 +400,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_boolean_parameter_if_the_parameter_value_is_a_wildcard()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['uitpas' => '*']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['uitpas' => '*']));
         $actual = $parameterBag->getBooleanFromParameter('uitpas');
         $this->assertNull($actual);
     }
@@ -410,7 +410,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_boolean_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag([]));
         $actual = $parameterBag->getStringFromParameter('uitpas');
         $this->assertNull($actual);
     }
@@ -420,7 +420,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_boolean_parameter_if_it_is_is_empty_and_defaults_are_disabled()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['disableDefaultFilters' => true]));
         $default = true;
 
         $actual = $parameterBag->getBooleanFromParameter('uitpas', $default);
@@ -433,7 +433,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_parse_a_datetime_from_a_parameter()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '2017-04-26T12:20:05+01:00']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['availableFrom' => '2017-04-26T12:20:05+01:00']));
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
         $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
 
@@ -448,7 +448,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
     {
         // @codingStandardsIgnoreEnd
 
-        $parameterBag = new ParameterBagReader(new ParameterBag());
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag());
         $default = '2017-04-26T12:20:05+01:00';
 
         $expected = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, '2017-04-26T12:20:05+01:00');
@@ -462,7 +462,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_datetime_parameter_if_the_parameter_value_is_a_wildcard()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '*']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['availableFrom' => '*']));
         $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
         $this->assertNull($actual);
     }
@@ -472,7 +472,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_datetime_parameter_if_it_is_is_empty_and_no_default_is_available()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag([]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag([]));
         $actual = $parameterBag->getDateTimeFromParameter('availableFrom');
         $this->assertNull($actual);
     }
@@ -482,7 +482,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_return_null_for_a_datetime_parameter_if_it_is_is_empty_and_defaults_are_disabled()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['disableDefaultFilters' => true]));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['disableDefaultFilters' => true]));
         $default = '2017-04-26T12:20:05+01:00';
 
         $actual = $parameterBag->getDateTimeFromParameter('availableFrom', $default);
@@ -495,7 +495,7 @@ class ParameterBagReaderTest extends \PHPUnit_Framework_TestCase
      */
     public function it_should_throw_an_exception_if_a_datetime_parameter_can_not_be_parsed()
     {
-        $parameterBag = new ParameterBagReader(new ParameterBag(['availableFrom' => '26/04/2017']));
+        $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['availableFrom' => '26/04/2017']));
 
         $this->expectException(\InvalidArgumentException::class);
         $this->expectExceptionMessage(
