@@ -127,7 +127,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
         );
 
         $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Array parameter is not supported for workflowStatus.');
+        $this->expectExceptionMessage('The parameter "workflowStatus" can only have a single value.');
 
         $parameterBag->getStringFromParameter('workflowStatus');
     }

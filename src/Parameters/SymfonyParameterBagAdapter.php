@@ -58,7 +58,9 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
         $callback = $this->ensureCallback($callback);
 
         if (is_array($parameterValue)) {
-            throw new \InvalidArgumentException("Array parameter is not supported for {$parameterName}.");
+            throw new \InvalidArgumentException(
+                "The parameter \"{$parameterName}\" can only have a single value."
+            );
         }
 
         if ($parameterValue === $this->resetValue) {
