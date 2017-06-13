@@ -15,6 +15,7 @@ use CultuurNet\UDB3\Search\ElasticSearch\Offer\ElasticSearchOfferQueryBuilder;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\CompositeOfferRequestParser;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
@@ -40,6 +41,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @var ElasticSearchOfferQueryBuilder
      */
     private $queryBuilder;
+
+    /**
+     * @var CompositeOfferRequestParser
+     */
+    private $requestParser;
 
     /**
      * @var OfferSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
@@ -79,6 +85,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     public function setUp()
     {
         $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
+        $this->requestParser = new CompositeOfferRequestParser();
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 
         $this->regionIndexName = new StringLiteral('geoshapes');
@@ -91,6 +98,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $this->controller = new OfferSearchController(
             $this->queryBuilder,
+            $this->requestParser,
             $this->searchService,
             $this->regionIndexName,
             $this->regionDocumentType,
