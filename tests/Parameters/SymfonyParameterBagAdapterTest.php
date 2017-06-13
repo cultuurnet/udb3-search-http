@@ -118,6 +118,23 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
     /**
      * @test
      */
+    public function it_does_throw_argument_exception_when_passing_array_for_string_parameter()
+    {
+        $parameterBag = new SymfonyParameterBagAdapter(
+            new ParameterBag(
+                ['workflowStatus' => ['DRAFT', 'READY_FOR_VALIDATION']]
+            )
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Array parameter is not supported for workflowStatus.');
+
+        $parameterBag->getStringFromParameter('workflowStatus');
+    }
+
+    /**
+     * @test
+     */
     public function it_should_apply_a_callback_to_the_single_string_value()
     {
         $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => 'DRAFT']));

@@ -57,6 +57,10 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
         $parameterValue = $this->parameterBag->get($parameterName, null);
         $callback = $this->ensureCallback($callback);
 
+        if (is_array($parameterValue)) {
+            throw new \InvalidArgumentException("Array parameter is not supported for {$parameterName}.");
+        }
+
         if ($parameterValue === $this->resetValue) {
             return null;
         }
