@@ -83,7 +83,7 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
      * @param string $delimiter
      * @return array
      */
-    public function getDelimitedStringFromParameter(
+    public function getExplodedStringFromParameter(
         $parameterName,
         $defaultValueAsString = null,
         callable $callback = null,

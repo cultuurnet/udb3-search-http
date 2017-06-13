@@ -229,7 +229,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
         );
 
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -249,7 +249,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = [new WorkflowStatus('READY_FOR_VALIDATION'), new WorkflowStatus('APPROVED')];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', null, $callback);
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus', null, $callback);
 
         $this->assertArrayContentsAreEqual($expected, $actual);
     }
@@ -266,7 +266,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = ['READY_FOR_VALIDATION', 'APPROVED'];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', $default);
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }
@@ -284,7 +284,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
         };
 
         $expected = [new WorkflowStatus('READY_FOR_VALIDATION'), new WorkflowStatus('APPROVED')];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', $default, $callback);
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus', $default, $callback);
 
         $this->assertArrayContentsAreEqual($expected, $actual);
     }
@@ -296,7 +296,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
     {
         $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag(['workflowStatus' => '*']));
         $expected = [];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -310,7 +310,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
 
         $parameterBag = new SymfonyParameterBagAdapter(new ParameterBag([]));
         $expected = [];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus');
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus');
         $this->assertEquals($expected, $actual);
     }
 
@@ -326,7 +326,7 @@ class SymfonyParameterBagAdapterTest extends \PHPUnit_Framework_TestCase
         $default = 'READY_FOR_VALIDATION,APPROVED';
 
         $expected = [];
-        $actual = $parameterBag->getDelimitedStringFromParameter('workflowStatus', $default);
+        $actual = $parameterBag->getExplodedStringFromParameter('workflowStatus', $default);
 
         $this->assertEquals($expected, $actual);
     }

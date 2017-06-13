@@ -510,7 +510,7 @@ class OfferSearchController
      */
     private function getWorkflowStatusesFromQuery(ParameterBagInterface $parameterBag)
     {
-        return $parameterBag->getDelimitedStringFromParameter(
+        return $parameterBag->getExplodedStringFromParameter(
             'workflowStatus',
             'APPROVED,READY_FOR_VALIDATION',
             function ($workflowStatus) {
@@ -525,7 +525,7 @@ class OfferSearchController
      */
     private function getCalendarTypesFromQuery(ParameterBagInterface $parameterBag)
     {
-        return $parameterBag->getDelimitedStringFromParameter(
+        return $parameterBag->getExplodedStringFromParameter(
             'calendarType',
             null,
             function ($calendarType) {
