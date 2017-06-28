@@ -20,13 +20,13 @@ use CultuurNet\UDB3\Search\ElasticSearch\Offer\ElasticSearchOfferQueryBuilder;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\CompositeOfferRequestParser;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
-use CultuurNet\UDB3\Search\Offer\SortBy;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -56,6 +56,11 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
      * @var ElasticSearchOfferQueryBuilder
      */
     private $queryBuilder;
+
+    /**
+     * @var CompositeOfferRequestParser
+     */
+    private $requestParser;
 
     /**
      * @var OfferSearchServiceInterface|\PHPUnit_Framework_MockObject_MockObject
@@ -98,6 +103,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->consumerRepository = new InMemoryConsumerRepository();
 
         $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
+        $this->requestParser = new CompositeOfferRequestParser();
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 
         $this->regionIndexName = new StringLiteral('geoshapes');
@@ -112,6 +118,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             $this->apiKeyReader,
             $this->consumerRepository,
             $this->queryBuilder,
+            $this->requestParser,
             $this->searchService,
             $this->regionIndexName,
             $this->regionDocumentType,
@@ -155,6 +162,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'organizerLabels' => ['ipsum'],
                 'textLanguages' => ['nl', 'en'],
                 'languages' => ['nl', 'en', 'fr'],
+                'completedLanguages' => ['nl', 'fr'],
                 'calendarType' => 'single',
                 'dateFrom' => '2017-05-01T00:00:00+01:00',
                 'dateTo' => '2017-05-01T23:59:59+01:00',
@@ -172,6 +180,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'facets' => ['regions'],
                 'creator' => 'Jane Doe',
                 'sort' => [
+                    'distance' => 'asc',
                     'availableTo' => 'asc',
                     'score' => 'desc',
                 ],
@@ -194,6 +203,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLanguageFilter(new Language('nl'))
             ->withLanguageFilter(new Language('en'))
             ->withLanguageFilter(new Language('fr'))
+            ->withCompletedLanguageFilter(new Language('nl'))
+            ->withCompletedLanguageFilter(new Language('fr'))
             ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )
@@ -263,8 +274,15 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLocationLabelFilter(new LabelName('lorem'))
             ->withOrganizerLabelFilter(new LabelName('ipsum'))
             ->withFacet(FacetName::REGIONS())
-            ->withSort(SortBy::AVAILABLE_TO(), SortOrder::ASC())
-            ->withSort(SortBy::SCORE(), SortOrder::DESC())
+            ->withSortByDistance(
+                new Coordinates(
+                    new Latitude(-40.0),
+                    new Longitude(70.0)
+                ),
+                SortOrder::ASC()
+            )
+            ->withSortByAvailableTo(SortOrder::ASC())
+            ->withSortByScore(SortOrder::DESC())
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -664,6 +682,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'text' => 'foobar',
                 'textLanguages' => 'nl',
                 'languages' => 'nl',
+                'completedLanguages' => 'nl',
                 'termIds' => '0.145.567.6',
                 'termLabels' => 'Jeugdhuis',
                 'facets' => 'regions',
@@ -675,12 +694,39 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLimit(new Natural(10))
             ->withTextQuery(new StringLiteral('foobar'), new Language('nl'))
             ->withLanguageFilter(new Language('nl'))
+            ->withCompletedLanguageFilter(new Language('nl'))
             ->withTermIdFilter(new TermId('0.145.567.6'))
             ->withTermLabelFilter(new TermLabel('Jeugdhuis'))
             ->withLabelFilter(new LabelName('foo'))
             ->withLocationLabelFilter(new LabelName('baz'))
             ->withOrganizerLabelFilter(new LabelName('bar'))
             ->withFacet(FacetName::REGIONS());
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_should_split_multiple_calendar_types_delimited_with_a_comma()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'start' => 30,
+                'limit' => 10,
+                'disableDefaultFilters' => true,
+                'calendarType' => 'SINGLE,MULTIPLE',
+            ]
+        );
+
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withStart(new Natural(30))
+            ->withLimit(new Natural(10))
+            ->withCalendarTypeFilter(new CalendarType('SINGLE'), new CalendarType('MULTIPLE'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
@@ -841,6 +887,25 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @test
+     */
+    public function it_throws_an_exception_for_sort_order_distance_and_missing_coordinates()
+    {
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'sort' => [
+                    'distance' => 'asc',
+                ]
+            ]
+        );
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Required "coordinates" parameter missing when sorting by distance.');
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
      * @dataProvider unknownParameterProvider
      *
      * @param Request $request
@@ -968,8 +1033,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $this->callback(
                     function ($actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
-                            $expectedQueryBuilder->build()->toArray(),
-                            $actualQueryBuilder->build()->toArray()
+                            json_encode($expectedQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT),
+                            json_encode($actualQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT)
                         );
                         return true;
                     }

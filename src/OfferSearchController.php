@@ -12,14 +12,16 @@ use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\DistanceFactoryInterface;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\OfferRequestParserInterface;
 use CultuurNet\UDB3\Search\Http\Parameters\OfferParameterWhiteList;
+use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
+use CultuurNet\UDB3\Search\Http\Parameters\SymfonyParameterBagAdapter;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
 use CultuurNet\UDB3\Search\Offer\FacetName;
 use CultuurNet\UDB3\Search\Offer\OfferQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Offer\OfferSearchServiceInterface;
-use CultuurNet\UDB3\Search\Offer\SortBy;
 use CultuurNet\UDB3\Search\Offer\WorkflowStatus;
 use CultuurNet\UDB3\Search\Offer\TermId;
 use CultuurNet\UDB3\Search\Offer\TermLabel;
@@ -34,15 +36,13 @@ use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 
+/**
+ * @todo Extract more parsing functionality to OfferRequestParserInterface
+ *   implementations.
+ * @see https://jira.uitdatabank.be/browse/III-2144
+ */
 class OfferSearchController
 {
-    /**
-     * Used to reset filters with default values.
-     * Eg., countryCode is default BE but can be reset by specifying
-     * ?countryCode=*
-     */
-    const QUERY_PARAMETER_RESET_VALUE = '*';
-
     /**
      * @var OfferQueryBuilderInterface
      */
@@ -92,6 +92,7 @@ class OfferSearchController
      * @param ApiKeyReaderInterface $apiKeyReader
      * @param ConsumerReadRepositoryInterface $consumerReadRepository
      * @param OfferQueryBuilderInterface $queryBuilder
+     * @param OfferRequestParserInterface $offerRequestParser
      * @param OfferSearchServiceInterface $searchService
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
@@ -104,6 +105,7 @@ class OfferSearchController
         ApiKeyReaderInterface $apiKeyReader,
         ConsumerReadRepositoryInterface $consumerReadRepository,
         OfferQueryBuilderInterface $queryBuilder,
+        OfferRequestParserInterface $offerRequestParser,
         OfferSearchServiceInterface $searchService,
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
@@ -119,6 +121,7 @@ class OfferSearchController
         $this->apiKeyReader = $apiKeyReader;
         $this->consumerReadRepository = $consumerReadRepository;
         $this->queryBuilder = $queryBuilder;
+        $this->requestParser = $offerRequestParser;
         $this->searchService = $searchService;
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
@@ -150,7 +153,11 @@ class OfferSearchController
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
 
-        $textLanguages = $this->getLanguagesFromQuery($request, 'textLanguages');
+        $queryBuilder = $this->requestParser->parse($request, $queryBuilder);
+
+        $parameterBag = new SymfonyParameterBagAdapter($request->query);
+
+        $textLanguages = $this->getLanguagesFromQuery($parameterBag, 'textLanguages');
 
         $consumerApiKey = $this->apiKeyReader->read($request);
         $consumer = $consumerApiKey ? $this->consumerReadRepository->getConsumer($consumerApiKey) : null;
@@ -180,11 +187,6 @@ class OfferSearchController
             );
         }
 
-        $languages = $this->getLanguagesFromQuery($request, 'languages');
-        foreach ($languages as $language) {
-            $queryBuilder = $queryBuilder->withLanguageFilter($language);
-        }
-
         if (!empty($request->query->get('id'))) {
             $queryBuilder = $queryBuilder->withCdbIdFilter(
                 new Cdbid($request->query->get('id'))
@@ -203,7 +205,7 @@ class OfferSearchController
             );
         }
 
-        $workflowStatuses = $this->getWorkflowStatusesFromQuery($request);
+        $workflowStatuses = $this->getWorkflowStatusesFromQuery($parameterBag);
         if (!empty($workflowStatuses)) {
             $queryBuilder = $queryBuilder->withWorkflowStatusFilter(...$workflowStatuses);
         }
@@ -214,7 +216,7 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withAvailableRangeFilter($availableFrom, $availableTo);
         }
 
-        $regionIds = $this->getRegionIdsFromQuery($request, 'regions');
+        $regionIds = $this->getRegionIdsFromQuery($parameterBag, 'regions');
         foreach ($regionIds as $regionId) {
             $queryBuilder = $queryBuilder->withRegionFilter(
                 $this->regionIndexName,
@@ -231,9 +233,11 @@ class OfferSearchController
         } elseif ($distance && !$coordinates) {
             throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
         } elseif ($coordinates && $distance) {
+            $coordinates = Coordinates::fromLatLonString($coordinates);
+
             $queryBuilder = $queryBuilder->withGeoDistanceFilter(
                 new GeoDistanceParameters(
-                    Coordinates::fromLatLonString($coordinates),
+                    $coordinates,
                     $this->distanceFactory->fromString($distance)
                 )
             );
@@ -246,12 +250,12 @@ class OfferSearchController
             );
         }
 
-        $country = $this->getAddressCountryFromQuery($request);
+        $country = $this->getAddressCountryFromQuery($parameterBag);
         if (!empty($country)) {
             $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
         }
 
-        $audienceType = $this->getAudienceTypeFromQuery($request);
+        $audienceType = $this->getAudienceTypeFromQuery($parameterBag);
         if (!empty($audienceType)) {
             $queryBuilder = $queryBuilder->withAudienceTypeFilter($audienceType);
         }
@@ -279,12 +283,12 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withPriceRangeFilter($minPrice, $maxPrice);
         }
 
-        $includeMediaObjects = $this->castMixedToBool($request->query->get('hasMediaObjects', null));
+        $includeMediaObjects = $parameterBag->getBooleanFromParameter('hasMediaObjects');
         if (!is_null($includeMediaObjects)) {
             $queryBuilder = $queryBuilder->withMediaObjectsFilter($includeMediaObjects);
         }
 
-        $includeUiTPAS = $this->castMixedToBool($request->query->get('uitpas', null));
+        $includeUiTPAS = $parameterBag->getBooleanFromParameter('uitpas');
         if (!is_null($includeUiTPAS)) {
             $queryBuilder = $queryBuilder->withUiTPASFilter($includeUiTPAS);
         }
@@ -295,75 +299,91 @@ class OfferSearchController
             );
         }
 
-        $createdFrom = $this->getDateTimeFromQuery($request, 'createdFrom');
-        $createdTo = $this->getDateTimeFromQuery($request, 'createdTo');
+        $createdFrom = $parameterBag->getDateTimeFromParameter('createdFrom');
+        $createdTo = $parameterBag->getDateTimeFromParameter('createdTo');
         if ($createdFrom || $createdTo) {
             $queryBuilder = $queryBuilder->withCreatedRangeFilter($createdFrom, $createdTo);
         }
 
-        $modifiedFrom = $this->getDateTimeFromQuery($request, 'modifiedFrom');
-        $modifiedTo = $this->getDateTimeFromQuery($request, 'modifiedTo');
+        $modifiedFrom = $parameterBag->getDateTimeFromParameter('modifiedFrom');
+        $modifiedTo = $parameterBag->getDateTimeFromParameter('modifiedTo');
         if ($modifiedFrom || $modifiedTo) {
             $queryBuilder = $queryBuilder->withModifiedRangeFilter($modifiedFrom, $modifiedTo);
         }
 
-        if ($request->query->get('calendarType')) {
-            $queryBuilder = $queryBuilder->withCalendarTypeFilter(
-                new CalendarType($request->query->get('calendarType'))
-            );
+        $calendarTypes = $this->getCalendarTypesFromQuery($parameterBag);
+        if (!empty($calendarTypes)) {
+            $queryBuilder = $queryBuilder->withCalendarTypeFilter(...$calendarTypes);
         }
 
-        $dateFrom = $this->getDateTimeFromQuery($request, 'dateFrom');
-        $dateTo = $this->getDateTimeFromQuery($request, 'dateTo');
+        $dateFrom = $parameterBag->getDateTimeFromParameter('dateFrom');
+        $dateTo = $parameterBag->getDateTimeFromParameter('dateTo');
         if ($dateFrom || $dateTo) {
             $queryBuilder = $queryBuilder->withDateRangeFilter($dateFrom, $dateTo);
         }
 
-        $termIds = $this->getTermIdsFromQuery($request, 'termIds');
+        $termIds = $this->getTermIdsFromQuery($parameterBag, 'termIds');
         foreach ($termIds as $termId) {
             $queryBuilder = $queryBuilder->withTermIdFilter($termId);
         }
 
-        $termLabels = $this->getTermLabelsFromQuery($request, 'termLabels');
+        $termLabels = $this->getTermLabelsFromQuery($parameterBag, 'termLabels');
         foreach ($termLabels as $termLabel) {
             $queryBuilder = $queryBuilder->withTermLabelFilter($termLabel);
         }
 
-        $locationTermIds = $this->getTermIdsFromQuery($request, 'locationTermIds');
+        $locationTermIds = $this->getTermIdsFromQuery($parameterBag, 'locationTermIds');
         foreach ($locationTermIds as $locationTermId) {
             $queryBuilder = $queryBuilder->withLocationTermIdFilter($locationTermId);
         }
 
-        $locationTermLabels = $this->getTermLabelsFromQuery($request, 'locationTermLabels');
+        $locationTermLabels = $this->getTermLabelsFromQuery($parameterBag, 'locationTermLabels');
         foreach ($locationTermLabels as $locationTermLabel) {
             $queryBuilder = $queryBuilder->withLocationTermLabelFilter($locationTermLabel);
         }
 
-        $labels = $this->getLabelsFromQuery($request, 'labels');
+        $labels = $this->getLabelsFromQuery($parameterBag, 'labels');
         foreach ($labels as $label) {
             $queryBuilder = $queryBuilder->withLabelFilter($label);
         }
 
-        $locationLabels = $this->getLabelsFromQuery($request, 'locationLabels');
+        $locationLabels = $this->getLabelsFromQuery($parameterBag, 'locationLabels');
         foreach ($locationLabels as $locationLabel) {
             $queryBuilder = $queryBuilder->withLocationLabelFilter($locationLabel);
         }
 
-        $organizerLabels = $this->getLabelsFromQuery($request, 'organizerLabels');
+        $organizerLabels = $this->getLabelsFromQuery($parameterBag, 'organizerLabels');
         foreach ($organizerLabels as $organizerLabel) {
             $queryBuilder = $queryBuilder->withOrganizerLabelFilter($organizerLabel);
         }
 
-        $facets = $this->getFacetsFromQuery($request, 'facets');
+        $facets = $this->getFacetsFromQuery($parameterBag, 'facets');
         foreach ($facets as $facet) {
             $queryBuilder = $queryBuilder->withFacet($facet);
         }
 
         $sorts = $this->getSortingFromQuery($request, 'sort');
+
+        $sortBuilders = [
+            'score' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByScore($sortOrder);
+            },
+            'availableTo' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByAvailableTo($sortOrder);
+            },
+            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($coordinates) {
+                if (!$coordinates) {
+                    throw new \InvalidArgumentException(
+                        'Required "coordinates" parameter missing when sorting by distance.'
+                    );
+                }
+
+                return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
+            }
+        ];
+
         foreach ($sorts as $field => $order) {
-            try {
-                $sortBy = SortBy::get($field);
-            } catch (\InvalidArgumentException $e) {
+            if (!isset($sortBuilders[$field])) {
                 throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
             }
 
@@ -373,7 +393,8 @@ class OfferSearchController
                 throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
             }
 
-            $queryBuilder = $queryBuilder->withSort($sortBy, $sortOrder);
+            $callback = $sortBuilders[$field];
+            $queryBuilder = call_user_func($callback, $queryBuilder, $sortOrder);
         }
 
         $resultSet = $this->searchService->search($queryBuilder);
@@ -399,45 +420,6 @@ class OfferSearchController
     }
 
     /**
-     * @param mixed $mixed
-     * @return bool|null
-     */
-    private function castMixedToBool($mixed)
-    {
-        if (is_null($mixed) || (is_string($mixed) && strlen($mixed) === 0)) {
-            return null;
-        }
-
-        return filter_var($mixed, FILTER_VALIDATE_BOOLEAN);
-    }
-
-    /**
-     * @param Request $request
-     * @param string $queryParameter
-     * @return \DateTimeImmutable|null
-     */
-    private function getDateTimeFromQuery(Request $request, $queryParameter)
-    {
-        $asMixed = $request->query->get($queryParameter, null);
-
-        if (is_null($asMixed)) {
-            return null;
-        }
-
-        $asString = (string) $asMixed;
-
-        $asDateTime = \DateTimeImmutable::createFromFormat(\DateTime::ATOM, $asString);
-
-        if (!$asDateTime) {
-            throw new \InvalidArgumentException(
-                "{$queryParameter} should be an ISO-8601 datetime, for example 2017-04-26T12:20:05+01:00"
-            );
-        }
-
-        return $asDateTime;
-    }
-
-    /**
      * @param Request $request
      * @param $queryParameter
      * @return \DateTimeImmutable|null
@@ -447,8 +429,9 @@ class OfferSearchController
         $defaultDateTime = \DateTimeImmutable::createFromFormat('U', $request->server->get('REQUEST_TIME'));
         $defaultDateTimeString = ($defaultDateTime) ? $defaultDateTime->format(\DateTime::ATOM) : null;
 
-        return $this->getQueryParameterValue(
-            $request,
+        $parameterBag = new SymfonyParameterBagAdapter($request->query);
+
+        return $parameterBag->getStringFromParameter(
             $queryParameter,
             $defaultDateTimeString,
             function ($dateTimeString) use ($queryParameter) {
@@ -465,15 +448,15 @@ class OfferSearchController
         );
     }
 
+
     /**
-     * @param Request $request
+     * @param ParameterBagInterface $parameterBag
      * @param string $queryParameter
      * @return TermId[]
      */
-    private function getTermIdsFromQuery(Request $request, $queryParameter)
+    private function getTermIdsFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
     {
-        return $this->getArrayFromQueryParameters(
-            $request,
+        return $parameterBag->getArrayFromParameter(
             $queryParameter,
             function ($value) {
                 return new TermId($value);
@@ -482,14 +465,13 @@ class OfferSearchController
     }
 
     /**
-     * @param Request $request
+     * @param ParameterBagInterface $parameterBag
      * @param string $queryParameter
      * @return TermLabel[]
      */
-    private function getTermLabelsFromQuery(Request $request, $queryParameter)
+    private function getTermLabelsFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
     {
-        return $this->getArrayFromQueryParameters(
-            $request,
+        return $parameterBag->getArrayFromParameter(
             $queryParameter,
             function ($value) {
                 return new TermLabel($value);
@@ -498,14 +480,13 @@ class OfferSearchController
     }
 
     /**
-     * @param Request $request
+     * @param ParameterBagInterface $parameterBag
      * @param string $queryParameter
      * @return LabelName[]
      */
-    private function getLabelsFromQuery(Request $request, $queryParameter)
+    private function getLabelsFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
     {
-        return $this->getArrayFromQueryParameters(
-            $request,
+        return $parameterBag->getArrayFromParameter(
             $queryParameter,
             function ($value) {
                 return new LabelName($value);
@@ -514,14 +495,13 @@ class OfferSearchController
     }
 
     /**
-     * @param Request $request
+     * @param ParameterBagInterface $parameterBag
      * @param string $queryParameter
      * @return Language[]
      */
-    private function getLanguagesFromQuery(Request $request, $queryParameter)
+    private function getLanguagesFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
     {
-        return $this->getArrayFromQueryParameters(
-            $request,
+        return $parameterBag->getArrayFromParameter(
             $queryParameter,
             function ($value) {
                 return new Language($value);
@@ -530,15 +510,93 @@ class OfferSearchController
     }
 
     /**
-     * @param Request $request
+     * @param ParameterBagInterface $parameterBag
+     * @param string $queryParameter
+     * @return RegionId[]
+     */
+    private function getRegionIdsFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
+    {
+        return $parameterBag->getArrayFromParameter(
+            $queryParameter,
+            function ($value) {
+                return new RegionId($value);
+            }
+        );
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
+     * @return WorkflowStatus[]
+     */
+    private function getWorkflowStatusesFromQuery(ParameterBagInterface $parameterBag)
+    {
+        return $parameterBag->getExplodedStringFromParameter(
+            'workflowStatus',
+            'APPROVED,READY_FOR_VALIDATION',
+            function ($workflowStatus) {
+                return new WorkflowStatus($workflowStatus);
+            }
+        );
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
+     * @return CalendarType[]
+     */
+    private function getCalendarTypesFromQuery(ParameterBagInterface $parameterBag)
+    {
+        return $parameterBag->getExplodedStringFromParameter(
+            'calendarType',
+            null,
+            function ($calendarType) {
+                return new CalendarType($calendarType);
+            }
+        );
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
+     * @return null|Country
+     */
+    private function getAddressCountryFromQuery(ParameterBagInterface $parameterBag)
+    {
+        return $parameterBag->getStringFromParameter(
+            'addressCountry',
+            'BE',
+            function ($country) {
+                try {
+                    $countryCode = CountryCode::fromNative(strtoupper((string) $country));
+                    return new Country($countryCode);
+                } catch (\InvalidArgumentException $e) {
+                    throw new \InvalidArgumentException("Unknown country code '{$country}'.");
+                }
+            }
+        );
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
+     * @return AudienceType|null
+     */
+    private function getAudienceTypeFromQuery(ParameterBagInterface $parameterBag)
+    {
+        return $parameterBag->getStringFromParameter(
+            'audienceType',
+            'everyone',
+            function ($audienceType) {
+                return new AudienceType($audienceType);
+            }
+        );
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
      * @param $queryParameter
      * @return FacetName[]
-     * @throws \InvalidArgumentException
      */
-    private function getFacetsFromQuery(Request $request, $queryParameter)
+    private function getFacetsFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
     {
-        return $this->getArrayFromQueryParameters(
-            $request,
+        return $parameterBag->getArrayFromParameter(
             $queryParameter,
             function ($value) {
                 try {
@@ -546,22 +604,6 @@ class OfferSearchController
                 } catch (\InvalidArgumentException $e) {
                     throw new \InvalidArgumentException("Unknown facet name '$value'.");
                 }
-            }
-        );
-    }
-
-    /**
-     * @param Request $request
-     * @param string $queryParameter
-     * @return RegionId[]
-     */
-    private function getRegionIdsFromQuery(Request $request, $queryParameter)
-    {
-        return $this->getArrayFromQueryParameters(
-            $request,
-            $queryParameter,
-            function ($value) {
-                return new RegionId($value);
             }
         );
     }
@@ -581,138 +623,5 @@ class OfferSearchController
         }
 
         return $sorting;
-    }
-
-    /**
-     * @param Request $request
-     * @param string $queryParameter
-     * @param callable|null $callback
-     * @return array
-     */
-    private function getArrayFromQueryParameters(Request $request, $queryParameter, callable $callback = null)
-    {
-        if (empty($request->query->get($queryParameter))) {
-            return [];
-        }
-
-        $values = (array) $request->query->get($queryParameter);
-
-        if (!is_null($callback)) {
-            $values = array_map($callback, $values);
-        }
-
-        return $values;
-    }
-
-    /**
-     * @param Request $request
-     * @return WorkflowStatus[]
-     */
-    private function getWorkflowStatusesFromQuery(Request $request)
-    {
-        // Not the most ideal solution, but as this is a special case for a
-        // parameter that normally only has a single value, but multiple values
-        // with an OR operator by default, it seems fine for now.
-        // Should be refactored down the road if/when we need support for the
-        // OR operator in other URL parameters.
-        $defaultAsString = 'APPROVED,READY_FOR_VALIDATION';
-
-        $parameterValue = $this->getQueryParameterValue(
-            $request,
-            'workflowStatus',
-            $defaultAsString,
-            function ($workflowStatus) {
-                return new WorkflowStatus(strtoupper((string) $workflowStatus));
-            }
-        );
-
-        if ($parameterValue == new WorkflowStatus($defaultAsString)) {
-            return [
-                new WorkflowStatus('APPROVED'),
-                new WorkflowStatus('READY_FOR_VALIDATION'),
-            ];
-        } elseif (!is_null($parameterValue)) {
-            return [$parameterValue];
-        } else {
-            return [];
-        }
-    }
-
-    /**
-     * @param Request $request
-     * @return Country|null
-     */
-    private function getAddressCountryFromQuery(Request $request)
-    {
-        return $this->getQueryParameterValue(
-            $request,
-            'addressCountry',
-            'BE',
-            function ($country) {
-                try {
-                    $countryCode = CountryCode::fromNative(strtoupper((string) $country));
-                    return new Country($countryCode);
-                } catch (\InvalidArgumentException $e) {
-                    throw new \InvalidArgumentException("Unknown country code '{$country}'.");
-                }
-            }
-        );
-    }
-
-    /**
-     * @param Request $request
-     * @return AudienceType|null
-     */
-    private function getAudienceTypeFromQuery(Request $request)
-    {
-        return $this->getQueryParameterValue(
-            $request,
-            'audienceType',
-            'everyone',
-            function ($audienceType) {
-                return new AudienceType($audienceType);
-            }
-        );
-    }
-
-    /**
-     * @param Request $request
-     * @param string $parameterName
-     * @param mixed|null $defaultValue
-     * @param callable $callback
-     * @return mixed|null
-     */
-    private function getQueryParameterValue(
-        Request $request,
-        $parameterName,
-        $defaultValue = null,
-        callable $callback = null
-    ) {
-        $parameterValue = $request->query->get($parameterName, null);
-        $defaultsEnabled = $this->defaultFiltersAreEnabled($request);
-
-        if ($parameterValue === OfferSearchController::QUERY_PARAMETER_RESET_VALUE) {
-            return null;
-        }
-
-        if (is_null($parameterValue) && $defaultsEnabled) {
-            $parameterValue = $defaultValue;
-        }
-
-        if (!is_null($parameterValue) && is_callable($callback)) {
-            return call_user_func($callback, $parameterValue);
-        }
-
-        return $parameterValue;
-    }
-
-    /**
-     * @param Request $request
-     * @return bool
-     */
-    private function defaultFiltersAreEnabled(Request $request)
-    {
-        $disabled = $this->castMixedToBool($request->query->get('disableDefaultFilters', false));
-        return !$disabled;
     }
 }
