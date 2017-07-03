@@ -6,6 +6,11 @@ use CultuurNet\Geocoding\Coordinate\Coordinates;
 use CultuurNet\Geocoding\Coordinate\Latitude;
 use CultuurNet\Geocoding\Coordinate\Longitude;
 use CultuurNet\UDB3\Address\PostalCode;
+use CultuurNet\UDB3\ApiGuard\ApiKey\ApiKey;
+use CultuurNet\UDB3\ApiGuard\ApiKey\Reader\QueryParameterApiKeyReader;
+use CultuurNet\UDB3\ApiGuard\Consumer\ConsumerInterface;
+use CultuurNet\UDB3\ApiGuard\Consumer\ConsumerReadRepositoryInterface;
+use CultuurNet\UDB3\ApiGuard\Consumer\InMemoryConsumerRepository;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
@@ -37,6 +42,16 @@ use ValueObjects\StringLiteral\StringLiteral;
 
 class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
+    /**
+     * @var QueryParameterApiKeyReader
+     */
+    private $apiKeyReader;
+
+    /**
+     * @var InMemoryConsumerRepository
+     */
+    private $consumerRepository;
+
     /**
      * @var ElasticSearchOfferQueryBuilder
      */
@@ -84,6 +99,9 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
+        $this->apiKeyReader = new QueryParameterApiKeyReader('apiKey');
+        $this->consumerRepository = new InMemoryConsumerRepository();
+
         $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
         $this->requestParser = new CompositeOfferRequestParser();
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
@@ -97,6 +115,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->facetTreeNormalizer = new NodeAwareFacetTreeNormalizer();
 
         $this->controller = new OfferSearchController(
+            $this->apiKeyReader,
+            $this->consumerRepository,
             $this->queryBuilder,
             $this->requestParser,
             $this->searchService,
@@ -931,6 +951,56 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'expectedExceptionMessage' => 'Unknown query parameter(s): bat'
             ],
         ];
+    }
+
+    /**
+     * @test
+     */
+    public function it_should_add_the_default_query_of_the_api_consumer_if_they_have_one()
+    {
+        $apiKey = new ApiKey('d568d2e9-3b53-4704-82a1-eaccf91a6337');
+        $defaultQuery = new StringLiteral('labels:foo');
+
+        /* @var ConsumerInterface|\PHPUnit_Framework_MockObject_MockObject $consumer */
+        $consumer = $this->createMock(ConsumerInterface::class);
+
+        $consumer->expects($this->any())
+            ->method('getApiKey')
+            ->willReturn($apiKey);
+
+        $consumer->expects($this->any())
+            ->method('getDefaultQuery')
+            ->willReturn($defaultQuery);
+
+        $this->consumerRepository->setConsumer($apiKey, $consumer);
+
+        $request = $this->getSearchRequestWithQueryParameters(
+            [
+                'start' => 10,
+                'limit' => 30,
+                'disableDefaultFilters' => true,
+                'apiKey' => $apiKey->toNative(),
+                'q' => 'labels:bar',
+            ]
+        );
+
+        /* @var OfferQueryBuilderInterface $expectedQueryBuilder */
+        $expectedQueryBuilder = $this->queryBuilder;
+        $expectedQueryBuilder = $expectedQueryBuilder
+            ->withAdvancedQuery(
+                new MockQueryString('labels:foo')
+            )
+            ->withAdvancedQuery(
+                new MockQueryString('labels:bar')
+            )
+            ->withStart(new Natural(10))
+            ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
     }
 
     /**
