@@ -16,6 +16,7 @@ use CultuurNet\UDB3\Search\Http\Offer\RequestParser\OfferRequestParserInterface;
 use CultuurNet\UDB3\Search\Http\Parameters\OfferParameterWhiteList;
 use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
 use CultuurNet\UDB3\Search\Http\Parameters\SymfonyParameterBagAdapter;
+use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
@@ -115,7 +116,9 @@ class OfferSearchController
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
+            $pagedCollectionFactory = new ResultTransformingPagedCollectionFactory(
+                new PassThroughJsonDocumentTransformer()
+            );
         }
 
         $this->apiKeyReader = $apiKeyReader;

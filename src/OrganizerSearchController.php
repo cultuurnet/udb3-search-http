@@ -3,6 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
+use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -45,7 +46,9 @@ class OrganizerSearchController
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
-            $pagedCollectionFactory = new ResultSetMappingPagedCollectionFactory();
+            $pagedCollectionFactory = new ResultTransformingPagedCollectionFactory(
+                new PassThroughJsonDocumentTransformer()
+            );
         }
 
         $this->queryBuilder = $queryBuilder;
