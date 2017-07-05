@@ -8,16 +8,35 @@ use CultuurNet\UDB3\Search\JsonDocument\JsonDocumentTransformerInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use ValueObjects\Number\Natural;
 
-class PagedCollectionFactoryTest extends \PHPUnit_Framework_TestCase
+class ResultTransformingPagedCollectionFactoryTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var ResultSetMappingPagedCollectionFactory
+     * @var JsonDocumentTransformerInterface|\PHPUnit_Framework_MockObject_MockObject
+     */
+    private $transformer;
+
+    /**
+     * @var ResultTransformingPagedCollectionFactory
      */
     private $factory;
 
     public function setUp()
     {
-        $this->factory = new ResultSetMappingPagedCollectionFactory();
+        $this->transformer = $this->createMock(JsonDocumentTransformerInterface::class);
+
+        $this->factory = new ResultTransformingPagedCollectionFactory(
+            $this->transformer
+        );
+
+        $this->transformer->expects($this->any())
+            ->method('transform')
+            ->willReturnCallback(
+                function (JsonDocument $jsonDocument) {
+                    $body = $jsonDocument->getBody();
+                    $body->transformed = true;
+                    return $jsonDocument->withBody($body);
+                }
+            );
     }
 
     /**
@@ -52,9 +71,11 @@ class PagedCollectionFactoryTest extends \PHPUnit_Framework_TestCase
             [
                 (object) [
                     '@id' => 'events/3d3ecf5c-2c21-4c6c-9faf-cd8e5fbf0464',
+                    'transformed' => true,
                 ],
                 (object) [
                     '@id' => 'events/9f50a221-c6b3-486d-bede-603c75091dbe',
+                    'transformed' => true,
                 ],
             ],
             $total
