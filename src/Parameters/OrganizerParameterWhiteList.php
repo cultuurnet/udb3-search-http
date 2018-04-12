@@ -11,7 +11,8 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
     {
         return [
             'name',
-            'website'
+            'website',
+            'postalCode',
         ];
     }
 }
