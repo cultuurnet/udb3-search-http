@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
 use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
@@ -87,6 +88,13 @@ class OrganizerSearchController
         if (!empty($request->query->get('website'))) {
             $queryBuilder = $queryBuilder->withWebsiteFilter(
                 Url::fromNative($request->query->get('website'))
+            );
+        }
+
+        $postalCode = (string) $request->query->get('postalCode');
+        if (!empty($postalCode)) {
+            $queryBuilder = $queryBuilder->withPostalCodeFilter(
+                new PostalCode($postalCode)
             );
         }
 

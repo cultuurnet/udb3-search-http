@@ -2,6 +2,7 @@
 
 namespace CultuurNet\UDB3\Search\Http;
 
+use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
@@ -47,12 +48,14 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'limit' => 10,
                 'name' => 'Foo',
                 'website' => 'http://foo.bar',
+                'postalCode' => 3000,
             ]
         );
 
         $expectedQueryBuilder = $this->queryBuilder
             ->withAutoCompleteFilter(new StringLiteral('Foo'))
             ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
+            ->withPostalCodeFilter(new PostalCode("3000"))
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
