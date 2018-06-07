@@ -152,6 +152,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'addressCountry' => 'BE',
                 'minAge' => 3,
                 'maxAge' => 7,
+                'allAges' => true,
                 'price' => 1.55,
                 'minPrice' => 0.99,
                 'maxPrice' => 1.99,
@@ -205,6 +206,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLanguageFilter(new Language('fr'))
             ->withCompletedLanguageFilter(new Language('nl'))
             ->withCompletedLanguageFilter(new Language('fr'))
+            ->withAgeRangeFilter(new Natural(3), new Natural(7))
+            ->withAllAgesFilter(true)
             ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )
@@ -243,7 +246,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withPostalCodeFilter(new PostalCode("3000"))
             ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')))
             ->withAudienceTypeFilter(new AudienceType('members'))
-            ->withAgeRangeFilter(new Natural(3), new Natural(7))
             ->withPriceRangeFilter(Price::fromFloat(1.55), Price::fromFloat(1.55))
             ->withMediaObjectsFilter(true)
             ->withUiTPASFilter(true)

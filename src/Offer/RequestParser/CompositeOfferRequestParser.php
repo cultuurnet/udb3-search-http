@@ -16,6 +16,7 @@ class CompositeOfferRequestParser implements OfferRequestParserInterface
     {
         $this->parsers = [
             new DocumentLanguageOfferRequestParser(),
+            new AgeRangeOfferRequestParser(),
         ];
     }
 
