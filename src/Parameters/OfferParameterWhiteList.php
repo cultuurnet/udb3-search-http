@@ -25,6 +25,7 @@ class OfferParameterWhiteList extends AbstractParameterWhiteList
             'addressCountry',
             'minAge',
             'maxAge',
+            'allAges',
             'price',
             'minPrice',
             'maxPrice',

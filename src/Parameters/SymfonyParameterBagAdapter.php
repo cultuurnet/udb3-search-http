@@ -80,6 +80,27 @@ class SymfonyParameterBagAdapter implements ParameterBagInterface
 
     /**
      * @param string $parameterName
+     * @param string|null $defaultValue
+     * @param callable $callback
+     * @return mixed|null
+     */
+    public function getIntegerFromParameter(
+        $parameterName,
+        $defaultValue = null,
+        callable $callback = null
+    ) {
+        $callback = $this->ensureCallback($callback);
+
+        $intCallback = function ($value) use ($callback) {
+            $int = (int) $value;
+            return call_user_func($callback, $int);
+        };
+
+        return $this->getStringFromParameter($parameterName, $defaultValue, $intCallback);
+    }
+
+    /**
+     * @param string $parameterName
      * @param string|null $defaultValueAsString
      * @param callable|null $callback
      * @param string $delimiter

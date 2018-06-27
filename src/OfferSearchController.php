@@ -45,9 +45,24 @@ use ValueObjects\StringLiteral\StringLiteral;
 class OfferSearchController
 {
     /**
+     * @var ApiKeyReaderInterface
+     */
+    private $apiKeyReader;
+
+    /**
+     * @var ConsumerReadRepositoryInterface
+     */
+    private $consumerReadRepository;
+
+    /**
      * @var OfferQueryBuilderInterface
      */
     private $queryBuilder;
+
+    /**
+     * @var OfferRequestParserInterface
+     */
+    private $requestParser;
 
     /**
      * @var OfferSearchServiceInterface
@@ -261,15 +276,6 @@ class OfferSearchController
         $audienceType = $this->getAudienceTypeFromQuery($parameterBag);
         if (!empty($audienceType)) {
             $queryBuilder = $queryBuilder->withAudienceTypeFilter($audienceType);
-        }
-
-        $minAge = $request->query->get('minAge', null);
-        $maxAge = $request->query->get('maxAge', null);
-        if (!is_null($minAge) || !is_null($maxAge)) {
-            $minAge = is_null($minAge) ? null : new Natural((int) $minAge);
-            $maxAge = is_null($maxAge) ? null : new Natural((int) $maxAge);
-
-            $queryBuilder = $queryBuilder->withAgeRangeFilter($minAge, $maxAge);
         }
 
         $price = $request->query->get('price', null);
