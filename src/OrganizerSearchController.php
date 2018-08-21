@@ -7,6 +7,7 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
 use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
+use CultuurNet\UDB3\Search\Http\Parameters\SymfonyParameterBagAdapter;
 use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
@@ -77,6 +78,8 @@ class OrganizerSearchController
         if ($limit == 0) {
             $limit = 30;
         }
+
+        $parameterBag = new SymfonyParameterBagAdapter($request->query);
 
         $queryBuilder = $this->queryBuilder
             ->withStart(new Natural($start))

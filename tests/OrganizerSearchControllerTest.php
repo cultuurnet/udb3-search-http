@@ -3,6 +3,7 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Address\PostalCode;
+use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
@@ -50,7 +51,11 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'name' => 'Foo',
                 'website' => 'http://foo.bar',
                 'postalCode' => 3000,
-                'creator' => 'Jan Janssens'
+                'creator' => 'Jan Janssens',
+                'labels' => [
+                    'Uitpas',
+                    'foo',
+                ],
             ]
         );
 
@@ -59,6 +64,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
             ->withPostalCodeFilter(new PostalCode("3000"))
             ->withCreatorFilter(new Creator('Jan Janssens'))
+            ->withLabelFilter(new LabelName('Uitpas'))
+            ->withLabelFilter(new LabelName('foo'))
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
