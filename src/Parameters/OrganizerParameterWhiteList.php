@@ -13,6 +13,7 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
             'name',
             'website',
             'postalCode',
+            'creator',
         ];
     }
 }
