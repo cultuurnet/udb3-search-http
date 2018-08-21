@@ -3,8 +3,10 @@
 namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Address\PostalCode;
+use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
+use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
 use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
@@ -105,6 +107,11 @@ class OrganizerSearchController
             );
         }
 
+        $labels = $this->getLabelsFromQuery($parameterBag, 'labels');
+        foreach ($labels as $label) {
+            $queryBuilder = $queryBuilder->withLabelFilter($label);
+        }
+
         $resultSet = $this->searchService->search($queryBuilder);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
@@ -117,5 +124,20 @@ class OrganizerSearchController
             ->setPublic()
             ->setClientTtl(60 * 1)
             ->setTtl(60 * 5);
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
+     * @param string $queryParameter
+     * @return LabelName[]
+     */
+    private function getLabelsFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
+    {
+        return $parameterBag->getArrayFromParameter(
+            $queryParameter,
+            function ($value) {
+                return new LabelName($value);
+            }
+        );
     }
 }
