@@ -12,6 +12,7 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
         return [
             'name',
             'website',
+            'domain',
             'postalCode',
             'creator',
             'labels',

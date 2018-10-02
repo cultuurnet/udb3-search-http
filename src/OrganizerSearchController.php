@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
+use ValueObjects\Web\Domain;
 use ValueObjects\Web\Url;
 
 class OrganizerSearchController
@@ -94,6 +95,12 @@ class OrganizerSearchController
         if (!empty($request->query->get('website'))) {
             $queryBuilder = $queryBuilder->withWebsiteFilter(
                 Url::fromNative($request->query->get('website'))
+            );
+        }
+
+        if (!empty($request->query->get('domain'))) {
+            $queryBuilder = $queryBuilder->withDomainFilter(
+                Domain::specifyType($request->query->get('domain'))
             );
         }
 
