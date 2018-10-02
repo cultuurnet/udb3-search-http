@@ -16,7 +16,7 @@
   "require": {
     "cultuurnet/hydra": "~0.1",
     "cultuurnet/udb3-api-guard": "~0.1",
-    "cultuurnet/udb3-search": "dev-feature/III-2289 as 0.1",
+    "cultuurnet/udb3-search": "~0.1",
     "cultuurnet/geocoding": "~0.1",
     "cultuurnet/valueobjects": "~3.0",
     "symfony/http-foundation": "~2.7.2"
