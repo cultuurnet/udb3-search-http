@@ -4,6 +4,7 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
+use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
@@ -32,11 +33,22 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
      */
     private $controller;
 
+    /**
+     * @var \CultuurNet\UDB3\Search\QueryStringFactoryInterface
+     */
+    private $queryStringFactory;
+
     public function setUp()
     {
         $this->queryBuilder = new ElasticSearchOrganizerQueryBuilder();
         $this->searchService = $this->createMock(OrganizerSearchServiceInterface::class);
-        $this->controller = new OrganizerSearchController($this->queryBuilder, $this->searchService);
+        $this->queryStringFactory = new MockQueryStringFactory();
+        $this->controller = new OrganizerSearchController(
+            $this->queryBuilder,
+            $this->searchService,
+            null,
+            $this->queryStringFactory
+        );
     }
 
     /**
@@ -48,6 +60,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             [
                 'start' => 30,
                 'limit' => 10,
+                'q' => 'Foo bar',
                 'name' => 'Foo',
                 'website' => 'http://foo.bar',
                 'postalCode' => 3000,
@@ -61,6 +74,11 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $expectedQueryBuilder = $this->queryBuilder
             ->withAutoCompleteFilter(new StringLiteral('Foo'))
+            ->withAdvancedQuery(
+                new MockQueryString('Foo bar'),
+                new Language('nl'),
+                new Language('en')
+            )
             ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
             ->withPostalCodeFilter(new PostalCode("3000"))
             ->withCreatorFilter(new Creator('Jan Janssens'))

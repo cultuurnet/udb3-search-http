@@ -10,12 +10,14 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
     protected function getParameterWhiteList()
     {
         return [
+            'q',
             'name',
             'website',
             'domain',
             'postalCode',
             'creator',
             'labels',
+            'textLanguages',
         ];
     }
 }

@@ -4,6 +4,7 @@ namespace CultuurNet\UDB3\Search\Http;
 
 use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
+use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
 use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
@@ -11,6 +12,7 @@ use CultuurNet\UDB3\Search\Http\Parameters\SymfonyParameterBagAdapter;
 use CultuurNet\UDB3\Search\JsonDocument\PassThroughJsonDocumentTransformer;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
+use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -42,14 +44,21 @@ class OrganizerSearchController
     private $organizerParameterWhiteList;
 
     /**
+     * @var QueryStringFactoryInterface
+     */
+    private $queryStringFactory;
+
+    /**
      * @param OrganizerQueryBuilderInterface $queryBuilder
      * @param OrganizerSearchServiceInterface $searchService
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
+     * @param QueryStringFactoryInterface $queryStringFactory
      */
     public function __construct(
         OrganizerQueryBuilderInterface $queryBuilder,
         OrganizerSearchServiceInterface $searchService,
-        PagedCollectionFactoryInterface $pagedCollectionFactory = null
+        PagedCollectionFactoryInterface $pagedCollectionFactory = null,
+        QueryStringFactoryInterface $queryStringFactory
     ) {
         if (is_null($pagedCollectionFactory)) {
             $pagedCollectionFactory = new ResultTransformingPagedCollectionFactory(
@@ -61,6 +70,7 @@ class OrganizerSearchController
         $this->searchService = $searchService;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
         $this->organizerParameterWhiteList = new OrganizerParameterWhiteList();
+        $this->queryStringFactory = $queryStringFactory;
     }
 
     /**
@@ -85,6 +95,17 @@ class OrganizerSearchController
         $queryBuilder = $this->queryBuilder
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
+
+        $textLanguages = $this->getLanguagesFromQuery($parameterBag, 'textLanguages');
+
+        if (!empty($request->query->get('q'))) {
+            $queryBuilder = $queryBuilder->withAdvancedQuery(
+                $this->queryStringFactory->fromString(
+                    $request->query->get('q')
+                ),
+                ...$textLanguages
+            );
+        }
 
         if (!empty($request->query->get('name'))) {
             $queryBuilder = $queryBuilder->withAutoCompleteFilter(
@@ -147,6 +168,21 @@ class OrganizerSearchController
             $queryParameter,
             function ($value) {
                 return new LabelName($value);
+            }
+        );
+    }
+
+    /**
+     * @param ParameterBagInterface $parameterBag
+     * @param string $queryParameter
+     * @return Language[]
+     */
+    private function getLanguagesFromQuery(ParameterBagInterface $parameterBag, $queryParameter)
+    {
+        return $parameterBag->getArrayFromParameter(
+            $queryParameter,
+            function ($value) {
+                return new Language($value);
             }
         );
     }
