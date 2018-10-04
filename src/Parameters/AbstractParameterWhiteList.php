@@ -19,6 +19,7 @@ abstract class AbstractParameterWhiteList
             'embed',
             'start',
             'limit',
+            'XDEBUG_SESSION_START',
         ];
     }
 
