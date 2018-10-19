@@ -12,6 +12,8 @@ use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
+use ValueObjects\Geography\Country;
+use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 use ValueObjects\Web\Url;
@@ -64,6 +66,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'name' => 'Foo',
                 'website' => 'http://foo.bar',
                 'postalCode' => 3000,
+                'addressCountry' => 'NL',
                 'creator' => 'Jan Janssens',
                 'labels' => [
                     'Uitpas',
@@ -81,6 +84,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
             ->withPostalCodeFilter(new PostalCode("3000"))
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('NL')))
             ->withCreatorFilter(new Creator('Jan Janssens'))
             ->withLabelFilter(new LabelName('Uitpas'))
             ->withLabelFilter(new LabelName('foo'))
@@ -131,7 +135,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
-            ->withLimit(new Natural(30));
+            ->withLimit(new Natural(30))
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 

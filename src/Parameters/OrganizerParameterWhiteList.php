@@ -15,6 +15,7 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
             'website',
             'domain',
             'postalCode',
+            'addressCountry',
             'creator',
             'labels',
             'textLanguages',

@@ -268,7 +268,7 @@ class OfferSearchController
             );
         }
 
-        $country = $this->getAddressCountryFromQuery($parameterBag);
+        $country = (new CountryExtractor())->getCountryFromQuery($parameterBag);
         if (!empty($country)) {
             $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
         }

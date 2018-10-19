@@ -132,6 +132,11 @@ class OrganizerSearchController
             );
         }
 
+        $country = (new CountryExtractor())->getCountryFromQuery($parameterBag);
+        if (!empty($country)) {
+            $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
+        }
+
         if ($request->query->get('creator')) {
             $queryBuilder = $queryBuilder->withCreatorFilter(
                 new Creator($request->query->get('creator'))
