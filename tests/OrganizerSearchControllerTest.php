@@ -16,6 +16,7 @@ use ValueObjects\Geography\Country;
 use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
+use ValueObjects\Web\Domain;
 use ValueObjects\Web\Url;
 
 class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
@@ -72,6 +73,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                     'Uitpas',
                     'foo',
                 ],
+                'domain' => 'www.publiq.be'
             ]
         );
 
@@ -83,6 +85,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new Language('en')
             )
             ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
+            ->withDomainFilter(Domain::specifyType('www.publiq.be'))
             ->withPostalCodeFilter(new PostalCode("3000"))
             ->withAddressCountryFilter(new Country(CountryCode::fromNative('NL')))
             ->withCreatorFilter(new Creator('Jan Janssens'))
@@ -221,7 +224,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->method('search')
             ->with(
                 $this->callback(
-                    function ($actualQueryBuilder) use ($expectedQueryBuilder) {
+                    function (OrganizerQueryBuilderInterface $actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
                             $expectedQueryBuilder->build()->toArray(),
                             $actualQueryBuilder->build()->toArray()
