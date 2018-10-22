@@ -32,6 +32,7 @@ use CultuurNet\UDB3\Search\SortOrder;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 
@@ -266,7 +267,10 @@ class OfferSearchController
             );
         }
 
-        $country = (new CountryExtractor())->getCountryFromQuery($parameterBag);
+        $country = (new CountryExtractor())->getCountryFromQuery(
+            $parameterBag,
+            CountryCode::fromNative('BE')
+        );
         if (!empty($country)) {
             $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
         }

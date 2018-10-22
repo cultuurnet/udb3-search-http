@@ -10,14 +10,21 @@ class CountryExtractor
 {
     /**
      * @param ParameterBagInterface $parameterBag
+     * @param null|CountryCode $defaultCountryCode
      * @return null|Country
      */
-    public function getCountryFromQuery(ParameterBagInterface $parameterBag): ?Country
-    {
+    public function getCountryFromQuery(
+        ParameterBagInterface $parameterBag,
+        ?CountryCode $defaultCountryCode
+    ): ?Country {
         return $parameterBag->getStringFromParameter(
             'addressCountry',
-            'BE',
-            function ($country) {
+            null !== $defaultCountryCode ? $defaultCountryCode->toNative() : null,
+            function ($country) use ($defaultCountryCode) {
+                if (null === $country && null === $defaultCountryCode) {
+                    return null;
+                }
+
                 try {
                     $countryCode = CountryCode::fromNative(strtoupper((string) $country));
                     return new Country($countryCode);
