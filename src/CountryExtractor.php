@@ -21,10 +21,6 @@ class CountryExtractor
             'addressCountry',
             null !== $defaultCountryCode ? $defaultCountryCode->toNative() : null,
             function ($country) use ($defaultCountryCode) {
-                if (null === $country && null === $defaultCountryCode) {
-                    return null;
-                }
-
                 try {
                     $countryCode = CountryCode::fromNative(strtoupper((string) $country));
                     return new Country($countryCode);
