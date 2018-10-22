@@ -64,6 +64,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'start' => 30,
                 'limit' => 10,
                 'q' => 'Foo bar',
+                'textLanguages' => ['nl', 'en'],
                 'name' => 'Foo',
                 'website' => 'http://foo.bar',
                 'postalCode' => 3000,
