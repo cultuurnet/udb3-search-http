@@ -16,7 +16,6 @@ use CultuurNet\UDB3\Search\QueryStringFactoryInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
 use ValueObjects\Web\Domain;
