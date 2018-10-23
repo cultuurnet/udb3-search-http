@@ -12,8 +12,11 @@ use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
+use ValueObjects\Geography\Country;
+use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
+use ValueObjects\Web\Domain;
 use ValueObjects\Web\Url;
 
 class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
@@ -61,14 +64,17 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 'start' => 30,
                 'limit' => 10,
                 'q' => 'Foo bar',
+                'textLanguages' => ['nl', 'en'],
                 'name' => 'Foo',
                 'website' => 'http://foo.bar',
                 'postalCode' => 3000,
+                'addressCountry' => 'NL',
                 'creator' => 'Jan Janssens',
                 'labels' => [
                     'Uitpas',
                     'foo',
                 ],
+                'domain' => 'www.publiq.be'
             ]
         );
 
@@ -80,7 +86,9 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new Language('en')
             )
             ->withWebsiteFilter(Url::fromNative('http://foo.bar'))
+            ->withDomainFilter(Domain::specifyType('www.publiq.be'))
             ->withPostalCodeFilter(new PostalCode("3000"))
+            ->withAddressCountryFilter(new Country(CountryCode::fromNative('NL')))
             ->withCreatorFilter(new Creator('Jan Janssens'))
             ->withLabelFilter(new LabelName('Uitpas'))
             ->withLabelFilter(new LabelName('foo'))
@@ -217,7 +225,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->method('search')
             ->with(
                 $this->callback(
-                    function ($actualQueryBuilder) use ($expectedQueryBuilder) {
+                    function (OrganizerQueryBuilderInterface $actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
                             $expectedQueryBuilder->build()->toArray(),
                             $actualQueryBuilder->build()->toArray()

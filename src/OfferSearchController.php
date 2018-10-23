@@ -32,7 +32,6 @@ use CultuurNet\UDB3\Search\SortOrder;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
-use ValueObjects\Geography\Country;
 use ValueObjects\Geography\CountryCode;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
@@ -268,7 +267,10 @@ class OfferSearchController
             );
         }
 
-        $country = $this->getAddressCountryFromQuery($parameterBag);
+        $country = (new CountryExtractor())->getCountryFromQuery(
+            $parameterBag,
+            CountryCode::fromNative('BE')
+        );
         if (!empty($country)) {
             $queryBuilder = $queryBuilder->withAddressCountryFilter($country);
         }
@@ -559,26 +561,6 @@ class OfferSearchController
             null,
             function ($calendarType) {
                 return new CalendarType($calendarType);
-            }
-        );
-    }
-
-    /**
-     * @param ParameterBagInterface $parameterBag
-     * @return null|Country
-     */
-    private function getAddressCountryFromQuery(ParameterBagInterface $parameterBag)
-    {
-        return $parameterBag->getStringFromParameter(
-            'addressCountry',
-            'BE',
-            function ($country) {
-                try {
-                    $countryCode = CountryCode::fromNative(strtoupper((string) $country));
-                    return new Country($countryCode);
-                } catch (\InvalidArgumentException $e) {
-                    throw new \InvalidArgumentException("Unknown country code '{$country}'.");
-                }
             }
         );
     }
