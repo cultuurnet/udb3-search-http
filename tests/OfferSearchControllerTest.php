@@ -187,6 +187,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                     'distance' => 'asc',
                     'availableTo' => 'asc',
                     'score' => 'desc',
+                    'created' => 'asc',
+                    'modified' => 'desc',
                 ],
             ]
         );
@@ -229,6 +231,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             )
             ->withSortByAvailableTo(SortOrder::ASC())
             ->withSortByScore(SortOrder::DESC())
+            ->withSortByCreated(SortOrder::ASC())
+            ->withSortByModified(SortOrder::DESC())
             ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )

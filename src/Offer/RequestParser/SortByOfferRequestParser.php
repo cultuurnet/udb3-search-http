@@ -42,6 +42,12 @@ class SortByOfferRequestParser implements OfferRequestParserInterface
                 $coordinates = Coordinates::fromLatLonString($coordinates);
                 return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
             },
+            'created' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByCreated($sortOrder);
+            },
+            'modified' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
+                return $queryBuilder->withSortByModified($sortOrder);
+            },
         ];
 
         foreach ($sorts as $field => $order) {
