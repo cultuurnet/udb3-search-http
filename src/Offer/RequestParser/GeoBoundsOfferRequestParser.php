@@ -49,7 +49,7 @@ class GeoBoundsOfferRequestParser implements OfferRequestParserInterface
             new Longitude($northEastLong)
         );
 
-        $offerQueryBuilder->withGeoBoundsFilter(
+        $offerQueryBuilder = $offerQueryBuilder->withGeoBoundsFilter(
             new GeoBoundsParameters($northEast, $southWest)
         );
 
