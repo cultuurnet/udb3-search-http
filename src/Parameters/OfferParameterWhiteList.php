@@ -21,6 +21,7 @@ class OfferParameterWhiteList extends AbstractParameterWhiteList
             'regions',
             'coordinates',
             'distance',
+            'bounds',
             'postalCode',
             'addressCountry',
             'minAge',
