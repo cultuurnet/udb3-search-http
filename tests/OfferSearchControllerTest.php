@@ -20,7 +20,10 @@ use CultuurNet\UDB3\Search\ElasticSearch\Offer\ElasticSearchOfferQueryBuilder;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\AgeRangeOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\CompositeOfferRequestParser;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\DistanceOfferRequestParser;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\DocumentLanguageOfferRequestParser;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
@@ -103,14 +106,18 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->consumerRepository = new InMemoryConsumerRepository();
 
         $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
-        $this->requestParser = new CompositeOfferRequestParser();
+
+        $this->requestParser = (new CompositeOfferRequestParser())
+            ->withParser(new AgeRangeOfferRequestParser())
+            ->withParser(new DistanceOfferRequestParser(new MockDistanceFactory()))
+            ->withParser(new DocumentLanguageOfferRequestParser());
+
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 
         $this->regionIndexName = new StringLiteral('geoshapes');
         $this->regionDocumentType = new StringLiteral('region');
 
         $this->queryStringFactory = new MockQueryStringFactory();
-        $this->distanceFactory = new MockDistanceFactory();
 
         $this->facetTreeNormalizer = new NodeAwareFacetTreeNormalizer();
 
@@ -123,7 +130,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             $this->regionIndexName,
             $this->regionDocumentType,
             $this->queryStringFactory,
-            $this->distanceFactory,
             $this->facetTreeNormalizer
         );
     }
@@ -201,13 +207,22 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 new Language('nl'),
                 new Language('en')
             )
+            ->withAgeRangeFilter(new Natural(3), new Natural(7))
+            ->withAllAgesFilter(true)
+            ->withGeoDistanceFilter(
+                new GeoDistanceParameters(
+                    new Coordinates(
+                        new Latitude(-40.0),
+                        new Longitude(70.0)
+                    ),
+                    new MockDistance('30km')
+                )
+            )
             ->withLanguageFilter(new Language('nl'))
             ->withLanguageFilter(new Language('en'))
             ->withLanguageFilter(new Language('fr'))
             ->withCompletedLanguageFilter(new Language('nl'))
             ->withCompletedLanguageFilter(new Language('fr'))
-            ->withAgeRangeFilter(new Natural(3), new Natural(7))
-            ->withAllAgesFilter(true)
             ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )
@@ -233,15 +248,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $this->regionIndexName,
                 $this->regionDocumentType,
                 new RegionId('prv-limburg')
-            )
-            ->withGeoDistanceFilter(
-                new GeoDistanceParameters(
-                    new Coordinates(
-                        new Latitude(-40.0),
-                        new Longitude(70.0)
-                    ),
-                    new MockDistance('30km')
-                )
             )
             ->withPostalCodeFilter(new PostalCode("3000"))
             ->withAddressCountryFilter(new Country(CountryCode::fromNative('BE')))
