@@ -84,11 +84,6 @@ class OfferSearchController
     private $queryStringFactory;
 
     /**
-     * @var DistanceFactoryInterface
-     */
-    private $distanceFactory;
-
-    /**
      * @var FacetTreeNormalizerInterface
      */
     private $facetTreeNormalizer;
@@ -112,7 +107,6 @@ class OfferSearchController
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
      * @param QueryStringFactoryInterface $queryStringFactory
-     * @param DistanceFactoryInterface $distanceFactory
      * @param FacetTreeNormalizerInterface $facetTreeNormalizer
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
@@ -125,7 +119,6 @@ class OfferSearchController
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
         QueryStringFactoryInterface $queryStringFactory,
-        DistanceFactoryInterface $distanceFactory,
         FacetTreeNormalizerInterface $facetTreeNormalizer,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
@@ -143,7 +136,6 @@ class OfferSearchController
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
         $this->queryStringFactory = $queryStringFactory;
-        $this->distanceFactory = $distanceFactory;
         $this->facetTreeNormalizer = $facetTreeNormalizer;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
         $this->offerParameterWhiteList = new OfferParameterWhiteList();
@@ -239,24 +231,6 @@ class OfferSearchController
                 $this->regionIndexName,
                 $this->regionDocumentType,
                 $regionId
-            );
-        }
-
-        $coordinates = $request->query->get('coordinates', false);
-        $distance = $request->query->get('distance', false);
-
-        if ($coordinates && !$distance) {
-            throw new \InvalidArgumentException('Required "distance" parameter missing when searching by coordinates.');
-        } elseif ($distance && !$coordinates) {
-            throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
-        } elseif ($coordinates && $distance) {
-            $coordinates = Coordinates::fromLatLonString($coordinates);
-
-            $queryBuilder = $queryBuilder->withGeoDistanceFilter(
-                new GeoDistanceParameters(
-                    $coordinates,
-                    $this->distanceFactory->fromString($distance)
-                )
             );
         }
 
@@ -382,12 +356,16 @@ class OfferSearchController
             'availableTo' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
                 return $queryBuilder->withSortByAvailableTo($sortOrder);
             },
-            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($coordinates) {
+            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($request) {
+                $coordinates = $request->query->get('coordinates', false);
+
                 if (!$coordinates) {
                     throw new \InvalidArgumentException(
                         'Required "coordinates" parameter missing when sorting by distance.'
                     );
                 }
+
+                $coordinates = Coordinates::fromLatLonString($coordinates);
 
                 return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
             }
