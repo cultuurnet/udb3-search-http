@@ -14,10 +14,14 @@ class CompositeOfferRequestParser implements OfferRequestParserInterface
 
     public function __construct()
     {
-        $this->parsers = [
-            new DocumentLanguageOfferRequestParser(),
-            new AgeRangeOfferRequestParser(),
-        ];
+        $this->parsers = [];
+    }
+
+    public function withParser(OfferRequestParserInterface $parser)
+    {
+        $c = clone $this;
+        $c->parsers[] = $parser;
+        return $c;
     }
 
     /**
