@@ -347,45 +347,6 @@ class OfferSearchController
             $queryBuilder = $queryBuilder->withFacet($facet);
         }
 
-        $sorts = $this->getSortingFromQuery($request, 'sort');
-
-        $sortBuilders = [
-            'score' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
-                return $queryBuilder->withSortByScore($sortOrder);
-            },
-            'availableTo' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
-                return $queryBuilder->withSortByAvailableTo($sortOrder);
-            },
-            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($request) {
-                $coordinates = $request->query->get('coordinates', false);
-
-                if (!$coordinates) {
-                    throw new \InvalidArgumentException(
-                        'Required "coordinates" parameter missing when sorting by distance.'
-                    );
-                }
-
-                $coordinates = Coordinates::fromLatLonString($coordinates);
-
-                return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
-            }
-        ];
-
-        foreach ($sorts as $field => $order) {
-            if (!isset($sortBuilders[$field])) {
-                throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
-            }
-
-            try {
-                $sortOrder = SortOrder::get($order);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
-            }
-
-            $callback = $sortBuilders[$field];
-            $queryBuilder = call_user_func($callback, $queryBuilder, $sortOrder);
-        }
-
         $resultSet = $this->searchService->search($queryBuilder);
 
         $pagedCollection = $this->pagedCollectionFactory->fromPagedResultSet(
@@ -575,22 +536,5 @@ class OfferSearchController
                 }
             }
         );
-    }
-
-    /**
-     * @param Request $request
-     * @param string $queryParameter
-     * @return SortOrder[]
-     * @throws \InvalidArgumentException
-     */
-    private function getSortingFromQuery(Request $request, $queryParameter)
-    {
-        $sorting = $request->query->get($queryParameter, []);
-
-        if (!is_array($sorting)) {
-            throw new \InvalidArgumentException('Invalid sorting syntax given.');
-        }
-
-        return $sorting;
     }
 }
