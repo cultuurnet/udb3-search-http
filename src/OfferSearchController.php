@@ -84,11 +84,6 @@ class OfferSearchController
     private $queryStringFactory;
 
     /**
-     * @var DistanceFactoryInterface
-     */
-    private $distanceFactory;
-
-    /**
      * @var FacetTreeNormalizerInterface
      */
     private $facetTreeNormalizer;
@@ -112,7 +107,6 @@ class OfferSearchController
      * @param StringLiteral $regionIndexName
      * @param StringLiteral $regionDocumentType
      * @param QueryStringFactoryInterface $queryStringFactory
-     * @param DistanceFactoryInterface $distanceFactory
      * @param FacetTreeNormalizerInterface $facetTreeNormalizer
      * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
@@ -125,7 +119,6 @@ class OfferSearchController
         StringLiteral $regionIndexName,
         StringLiteral $regionDocumentType,
         QueryStringFactoryInterface $queryStringFactory,
-        DistanceFactoryInterface $distanceFactory,
         FacetTreeNormalizerInterface $facetTreeNormalizer,
         PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
@@ -143,7 +136,6 @@ class OfferSearchController
         $this->regionIndexName = $regionIndexName;
         $this->regionDocumentType = $regionDocumentType;
         $this->queryStringFactory = $queryStringFactory;
-        $this->distanceFactory = $distanceFactory;
         $this->facetTreeNormalizer = $facetTreeNormalizer;
         $this->pagedCollectionFactory = $pagedCollectionFactory;
         $this->offerParameterWhiteList = new OfferParameterWhiteList();
@@ -239,24 +231,6 @@ class OfferSearchController
                 $this->regionIndexName,
                 $this->regionDocumentType,
                 $regionId
-            );
-        }
-
-        $coordinates = $request->query->get('coordinates', false);
-        $distance = $request->query->get('distance', false);
-
-        if ($coordinates && !$distance) {
-            throw new \InvalidArgumentException('Required "distance" parameter missing when searching by coordinates.');
-        } elseif ($distance && !$coordinates) {
-            throw new \InvalidArgumentException('Required "coordinates" parameter missing when searching by distance.');
-        } elseif ($coordinates && $distance) {
-            $coordinates = Coordinates::fromLatLonString($coordinates);
-
-            $queryBuilder = $queryBuilder->withGeoDistanceFilter(
-                new GeoDistanceParameters(
-                    $coordinates,
-                    $this->distanceFactory->fromString($distance)
-                )
             );
         }
 
@@ -371,41 +345,6 @@ class OfferSearchController
         $facets = $this->getFacetsFromQuery($parameterBag, 'facets');
         foreach ($facets as $facet) {
             $queryBuilder = $queryBuilder->withFacet($facet);
-        }
-
-        $sorts = $this->getSortingFromQuery($request, 'sort');
-
-        $sortBuilders = [
-            'score' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
-                return $queryBuilder->withSortByScore($sortOrder);
-            },
-            'availableTo' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) {
-                return $queryBuilder->withSortByAvailableTo($sortOrder);
-            },
-            'distance' => function (OfferQueryBuilderInterface $queryBuilder, SortOrder $sortOrder) use ($coordinates) {
-                if (!$coordinates) {
-                    throw new \InvalidArgumentException(
-                        'Required "coordinates" parameter missing when sorting by distance.'
-                    );
-                }
-
-                return $queryBuilder->withSortByDistance($coordinates, $sortOrder);
-            }
-        ];
-
-        foreach ($sorts as $field => $order) {
-            if (!isset($sortBuilders[$field])) {
-                throw new \InvalidArgumentException("Invalid sort field '{$field}' given.");
-            }
-
-            try {
-                $sortOrder = SortOrder::get($order);
-            } catch (\InvalidArgumentException $e) {
-                throw new \InvalidArgumentException("Invalid sort order '{$order}' given.");
-            }
-
-            $callback = $sortBuilders[$field];
-            $queryBuilder = call_user_func($callback, $queryBuilder, $sortOrder);
         }
 
         $resultSet = $this->searchService->search($queryBuilder);
@@ -597,22 +536,5 @@ class OfferSearchController
                 }
             }
         );
-    }
-
-    /**
-     * @param Request $request
-     * @param string $queryParameter
-     * @return SortOrder[]
-     * @throws \InvalidArgumentException
-     */
-    private function getSortingFromQuery(Request $request, $queryParameter)
-    {
-        $sorting = $request->query->get($queryParameter, []);
-
-        if (!is_array($sorting)) {
-            throw new \InvalidArgumentException('Invalid sorting syntax given.');
-        }
-
-        return $sorting;
     }
 }
