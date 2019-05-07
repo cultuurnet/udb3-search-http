@@ -24,6 +24,7 @@ use CultuurNet\UDB3\Search\Http\Offer\RequestParser\AgeRangeOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\CompositeOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\DistanceOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\DocumentLanguageOfferRequestParser;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\SortByOfferRequestParser;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
@@ -86,11 +87,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     private $queryStringFactory;
 
     /**
-     * @var MockDistanceFactory
-     */
-    private $distanceFactory;
-
-    /**
      * @var NodeAwareFacetTreeNormalizer
      */
     private $facetTreeNormalizer;
@@ -110,7 +106,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->requestParser = (new CompositeOfferRequestParser())
             ->withParser(new AgeRangeOfferRequestParser())
             ->withParser(new DistanceOfferRequestParser(new MockDistanceFactory()))
-            ->withParser(new DocumentLanguageOfferRequestParser());
+            ->withParser(new DocumentLanguageOfferRequestParser())
+            ->withParser(new SortByOfferRequestParser());
 
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 
@@ -190,6 +187,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
                     'distance' => 'asc',
                     'availableTo' => 'asc',
                     'score' => 'desc',
+                    'created' => 'asc',
+                    'modified' => 'desc',
                 ],
             ]
         );
@@ -223,6 +222,17 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLanguageFilter(new Language('fr'))
             ->withCompletedLanguageFilter(new Language('nl'))
             ->withCompletedLanguageFilter(new Language('fr'))
+            ->withSortByDistance(
+                new Coordinates(
+                    new Latitude(-40.0),
+                    new Longitude(70.0)
+                ),
+                SortOrder::ASC()
+            )
+            ->withSortByAvailableTo(SortOrder::ASC())
+            ->withSortByScore(SortOrder::DESC())
+            ->withSortByCreated(SortOrder::ASC())
+            ->withSortByModified(SortOrder::DESC())
             ->withCdbIdFilter(
                 new Cdbid('42926044-09f4-4bd5-bc35-427b2fc1a525')
             )
@@ -282,15 +292,6 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withLocationLabelFilter(new LabelName('lorem'))
             ->withOrganizerLabelFilter(new LabelName('ipsum'))
             ->withFacet(FacetName::REGIONS())
-            ->withSortByDistance(
-                new Coordinates(
-                    new Latitude(-40.0),
-                    new Longitude(70.0)
-                ),
-                SortOrder::ASC()
-            )
-            ->withSortByAvailableTo(SortOrder::ASC())
-            ->withSortByScore(SortOrder::DESC())
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
