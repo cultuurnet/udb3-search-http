@@ -10,6 +10,7 @@ use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\Search\AbstractQueryString;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
+use CultuurNet\UDB3\Search\Organizer\WorkflowStatus;
 use ValueObjects\Geography\Country;
 use ValueObjects\Number\Natural;
 use ValueObjects\StringLiteral\StringLiteral;
@@ -72,6 +73,15 @@ final class MockOrganizerQueryBuilder implements OrganizerQueryBuilderInterface
     {
         $c = clone $this;
         $c->mockQuery['label'][] = (string) $label;
+        return $c;
+    }
+
+    public function withWorkflowStatusFilter(WorkflowStatus ...$workflowStatuses)
+    {
+        $c = clone $this;
+        $c->mockQuery['workflowStatus'] = array_map(function (WorkflowStatus $workflowStatus) {
+            return (string) $workflowStatus;
+        }, $workflowStatuses);
         return $c;
     }
 
