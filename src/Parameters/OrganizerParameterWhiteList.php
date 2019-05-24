@@ -19,6 +19,7 @@ class OrganizerParameterWhiteList extends AbstractParameterWhiteList
             'creator',
             'labels',
             'textLanguages',
+            'workflowStatus',
         ];
     }
 }
