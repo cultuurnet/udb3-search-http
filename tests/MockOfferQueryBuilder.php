@@ -150,8 +150,11 @@ final class MockOfferQueryBuilder implements OfferQueryBuilderInterface
         return $c;
     }
 
-    public function withRegionFilter(StringLiteral $regionIndexName, StringLiteral $regionDocumentType, RegionId $regionId)
-    {
+    public function withRegionFilter(
+        StringLiteral $regionIndexName,
+        StringLiteral $regionDocumentType,
+        RegionId $regionId
+    ) {
         $c = clone $this;
         $c->mockQuery['region']['index'] = (string) $regionIndexName;
         $c->mockQuery['region']['type'] = (string) $regionDocumentType;

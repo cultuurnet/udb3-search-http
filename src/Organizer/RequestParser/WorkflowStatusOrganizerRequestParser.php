@@ -14,8 +14,10 @@ final class WorkflowStatusOrganizerRequestParser implements OrganizerRequestPars
     private const PARAMETER = 'workflowStatus';
     private const DEFAULT = 'ACTIVE';
 
-    public function parse(Request $request, OrganizerQueryBuilderInterface $organizerQueryBuilder): OrganizerQueryBuilderInterface
-    {
+    public function parse(
+        Request $request,
+        OrganizerQueryBuilderInterface $organizerQueryBuilder
+    ): OrganizerQueryBuilderInterface {
         $parameterBagReader = new SymfonyParameterBagAdapter($request->query);
 
         $workflowStatuses = $parameterBagReader->getExplodedStringFromParameter(
