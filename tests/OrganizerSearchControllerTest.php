@@ -9,6 +9,7 @@ use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
+use CultuurNet\UDB3\Search\Organizer\WorkflowStatus;
 use CultuurNet\UDB3\Search\PagedResultSet;
 use Symfony\Component\HttpFoundation\Request;
 use ValueObjects\Geography\Country;
@@ -73,6 +74,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                     'Uitpas',
                     'foo',
                 ],
+                'workflowStatus' => 'ACTIVE,DELETED',
                 'domain' => 'www.publiq.be'
             ]
         );
@@ -91,6 +93,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withCreatorFilter(new Creator('Jan Janssens'))
             ->withLabelFilter(new LabelName('Uitpas'))
             ->withLabelFilter(new LabelName('foo'))
+            ->withWorkflowStatusFilter(new WorkflowStatus('ACTIVE'), new WorkflowStatus('DELETED'))
             ->withStart(new Natural(30))
             ->withLimit(new Natural(10));
 
@@ -139,6 +142,25 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
         $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
             ->withLimit(new Natural(30));
+
+        $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
+
+        $this->expectQueryBuilderWillReturnResultSet($expectedQueryBuilder, $expectedResultSet);
+
+        $this->controller->search($request);
+    }
+
+    /**
+     * @test
+     */
+    public function it_filters_out_deleted_organizers_by_default()
+    {
+        $request = new Request([]);
+
+        $expectedQueryBuilder = $this->queryBuilder
+            ->withStart(new Natural(0))
+            ->withLimit(new Natural(30))
+            ->withWorkflowStatusFilter(new WorkflowStatus('ACTIVE'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
