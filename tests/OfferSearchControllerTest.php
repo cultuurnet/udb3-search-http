@@ -24,6 +24,7 @@ use CultuurNet\UDB3\Search\Http\Offer\RequestParser\CompositeOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\DistanceOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\DocumentLanguageOfferRequestParser;
 use CultuurNet\UDB3\Search\Http\Offer\RequestParser\SortByOfferRequestParser;
+use CultuurNet\UDB3\Search\Http\Offer\RequestParser\WorkflowStatusOfferRequestParser;
 use CultuurNet\UDB3\Search\Offer\AudienceType;
 use CultuurNet\UDB3\Search\Offer\CalendarType;
 use CultuurNet\UDB3\Search\Offer\Cdbid;
@@ -106,7 +107,8 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->withParser(new AgeRangeOfferRequestParser())
             ->withParser(new DistanceOfferRequestParser(new MockDistanceFactory()))
             ->withParser(new DocumentLanguageOfferRequestParser())
-            ->withParser(new SortByOfferRequestParser());
+            ->withParser(new SortByOfferRequestParser())
+            ->withParser(new WorkflowStatusOfferRequestParser());
 
         $this->searchService = $this->createMock(OfferSearchServiceInterface::class);
 

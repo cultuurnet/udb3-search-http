@@ -89,6 +89,10 @@ final class MockOfferQueryBuilder implements OfferQueryBuilderInterface
 
     public function withWorkflowStatusFilter(WorkflowStatus ...$workflowStatuses)
     {
+        if (empty($workflowStatuses)) {
+            return $this;
+        }
+
         $c = clone $this;
         $c->mockQuery['workflowStatus'] = array_map(function (WorkflowStatus $workflowStatus) {
             return (string) $workflowStatus;
