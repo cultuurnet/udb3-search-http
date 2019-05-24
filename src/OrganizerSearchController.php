@@ -6,6 +6,7 @@ use CultuurNet\UDB3\Address\PostalCode;
 use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\Search\Creator;
+use CultuurNet\UDB3\Search\Http\Organizer\RequestParser\OrganizerRequestParser;
 use CultuurNet\UDB3\Search\Http\Parameters\OrganizerParameterWhiteList;
 use CultuurNet\UDB3\Search\Http\Parameters\ParameterBagInterface;
 use CultuurNet\UDB3\Search\Http\Parameters\SymfonyParameterBagAdapter;
@@ -49,16 +50,23 @@ class OrganizerSearchController
     private $queryStringFactory;
 
     /**
+     * @var OrganizerRequestParser
+     */
+    private $organizerRequestParser;
+
+    /**
      * @param OrganizerQueryBuilderInterface $queryBuilder
      * @param OrganizerSearchServiceInterface $searchService
-     * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
+     * @param OrganizerRequestParser $organizerRequestParser
      * @param QueryStringFactoryInterface $queryStringFactory
+     * @param PagedCollectionFactoryInterface|null $pagedCollectionFactory
      */
     public function __construct(
         OrganizerQueryBuilderInterface $queryBuilder,
         OrganizerSearchServiceInterface $searchService,
-        PagedCollectionFactoryInterface $pagedCollectionFactory = null,
-        QueryStringFactoryInterface $queryStringFactory
+        OrganizerRequestParser $organizerRequestParser,
+        QueryStringFactoryInterface $queryStringFactory,
+        PagedCollectionFactoryInterface $pagedCollectionFactory = null
     ) {
         if (is_null($pagedCollectionFactory)) {
             $pagedCollectionFactory = new ResultTransformingPagedCollectionFactory(
@@ -71,6 +79,7 @@ class OrganizerSearchController
         $this->pagedCollectionFactory = $pagedCollectionFactory;
         $this->organizerParameterWhiteList = new OrganizerParameterWhiteList();
         $this->queryStringFactory = $queryStringFactory;
+        $this->organizerRequestParser = $organizerRequestParser;
     }
 
     /**
@@ -95,6 +104,8 @@ class OrganizerSearchController
         $queryBuilder = $this->queryBuilder
             ->withStart(new Natural($start))
             ->withLimit(new Natural($limit));
+
+        $queryBuilder = $this->organizerRequestParser->parse($request, $queryBuilder);
 
         $textLanguages = $this->getLanguagesFromQuery($parameterBag, 'textLanguages');
 

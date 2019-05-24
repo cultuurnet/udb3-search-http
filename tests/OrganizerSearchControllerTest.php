@@ -7,6 +7,8 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
+use CultuurNet\UDB3\Search\Http\Organizer\RequestParser\CompositeOrganizerRequestParser;
+use CultuurNet\UDB3\Search\Http\Organizer\RequestParser\WorkflowStatusOrganizerRequestParser;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\Organizer\WorkflowStatus;
@@ -49,7 +51,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->controller = new OrganizerSearchController(
             $this->queryBuilder,
             $this->searchService,
-            null,
+            (new CompositeOrganizerRequestParser())
+                ->withParser(new WorkflowStatusOrganizerRequestParser()),
             $this->queryStringFactory
         );
     }
