@@ -141,7 +141,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
         $expectedQueryBuilder = $this->queryBuilder
             ->withStart(new Natural(0))
-            ->withLimit(new Natural(30));
+            ->withLimit(new Natural(30))
+            ->withWorkflowStatusFilter(new WorkflowStatus('ACTIVE'));
 
         $expectedResultSet = new PagedResultSet(new Natural(30), new Natural(0), []);
 
