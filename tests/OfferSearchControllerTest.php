@@ -16,7 +16,6 @@ use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\PriceInfo\Price;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
-use CultuurNet\UDB3\Search\ElasticSearch\Offer\ElasticSearchOfferQueryBuilder;
 use CultuurNet\UDB3\Search\Facet\FacetFilter;
 use CultuurNet\UDB3\Search\Facet\FacetNode;
 use CultuurNet\UDB3\Search\GeoDistanceParameters;
@@ -57,7 +56,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
     private $consumerRepository;
 
     /**
-     * @var ElasticSearchOfferQueryBuilder
+     * @var MockOfferQueryBuilder
      */
     private $queryBuilder;
 
@@ -101,7 +100,7 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
         $this->apiKeyReader = new QueryParameterApiKeyReader('apiKey');
         $this->consumerRepository = new InMemoryConsumerRepository();
 
-        $this->queryBuilder = new ElasticSearchOfferQueryBuilder();
+        $this->queryBuilder = new MockOfferQueryBuilder();
 
         $this->requestParser = (new CompositeOfferRequestParser())
             ->withParser(new AgeRangeOfferRequestParser())
@@ -1040,10 +1039,10 @@ class OfferSearchControllerTest extends \PHPUnit_Framework_TestCase
             ->method('search')
             ->with(
                 $this->callback(
-                    function ($actualQueryBuilder) use ($expectedQueryBuilder) {
+                    function (OfferQueryBuilderInterface $actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
-                            json_encode($expectedQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT),
-                            json_encode($actualQueryBuilder->build()->toArray(), JSON_PRETTY_PRINT)
+                            json_encode($expectedQueryBuilder->build(), JSON_PRETTY_PRINT),
+                            json_encode($actualQueryBuilder->build(), JSON_PRETTY_PRINT)
                         );
                         return true;
                     }
