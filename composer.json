@@ -27,8 +27,7 @@
     "phpunit/phpunit": "~5.7",
     "squizlabs/php_codesniffer": "~2.3",
     "phing/phing": "~2.11",
-    "satooshi/php-coveralls": "~0.7",
-    "cultuurnet/udb3-search-elasticsearch": "~0.1"
+    "satooshi/php-coveralls": "~0.7"
   },
   "autoload": {
     "psr-4": {
