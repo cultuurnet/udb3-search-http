@@ -7,7 +7,6 @@ use CultuurNet\UDB3\Label\ValueObjects\LabelName;
 use CultuurNet\UDB3\Language;
 use CultuurNet\UDB3\ReadModel\JsonDocument;
 use CultuurNet\UDB3\Search\Creator;
-use CultuurNet\UDB3\Search\ElasticSearch\Organizer\ElasticSearchOrganizerQueryBuilder;
 use CultuurNet\UDB3\Search\Organizer\OrganizerQueryBuilderInterface;
 use CultuurNet\UDB3\Search\Organizer\OrganizerSearchServiceInterface;
 use CultuurNet\UDB3\Search\PagedResultSet;
@@ -22,7 +21,7 @@ use ValueObjects\Web\Url;
 class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 {
     /**
-     * @var ElasticSearchOrganizerQueryBuilder
+     * @var MockOrganizerQueryBuilder
      */
     private $queryBuilder;
 
@@ -43,7 +42,7 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
 
     public function setUp()
     {
-        $this->queryBuilder = new ElasticSearchOrganizerQueryBuilder();
+        $this->queryBuilder = new MockOrganizerQueryBuilder();
         $this->searchService = $this->createMock(OrganizerSearchServiceInterface::class);
         $this->queryStringFactory = new MockQueryStringFactory();
         $this->controller = new OrganizerSearchController(
@@ -227,8 +226,8 @@ class OrganizerSearchControllerTest extends \PHPUnit_Framework_TestCase
                 $this->callback(
                     function (OrganizerQueryBuilderInterface $actualQueryBuilder) use ($expectedQueryBuilder) {
                         $this->assertEquals(
-                            $expectedQueryBuilder->build()->toArray(),
-                            $actualQueryBuilder->build()->toArray()
+                            $expectedQueryBuilder->build(),
+                            $actualQueryBuilder->build()
                         );
                         return true;
                     }
