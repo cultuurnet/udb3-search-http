@@ -89,6 +89,10 @@ final class MockOfferQueryBuilder implements OfferQueryBuilderInterface
 
     public function withWorkflowStatusFilter(WorkflowStatus ...$workflowStatuses)
     {
+        if (empty($workflowStatuses)) {
+            return $this;
+        }
+
         $c = clone $this;
         $c->mockQuery['workflowStatus'] = array_map(function (WorkflowStatus $workflowStatus) {
             return (string) $workflowStatus;
@@ -150,8 +154,11 @@ final class MockOfferQueryBuilder implements OfferQueryBuilderInterface
         return $c;
     }
 
-    public function withRegionFilter(StringLiteral $regionIndexName, StringLiteral $regionDocumentType, RegionId $regionId)
-    {
+    public function withRegionFilter(
+        StringLiteral $regionIndexName,
+        StringLiteral $regionDocumentType,
+        RegionId $regionId
+    ) {
         $c = clone $this;
         $c->mockQuery['region']['index'] = (string) $regionIndexName;
         $c->mockQuery['region']['type'] = (string) $regionDocumentType;

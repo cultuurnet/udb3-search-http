@@ -214,11 +214,6 @@ class OfferSearchController
             );
         }
 
-        $workflowStatuses = $this->getWorkflowStatusesFromQuery($parameterBag);
-        if (!empty($workflowStatuses)) {
-            $queryBuilder = $queryBuilder->withWorkflowStatusFilter(...$workflowStatuses);
-        }
-
         $availableFrom = $this->getAvailabilityFromQuery($request, 'availableFrom');
         $availableTo = $this->getAvailabilityFromQuery($request, 'availableTo');
         if ($availableFrom || $availableTo) {
@@ -470,21 +465,6 @@ class OfferSearchController
             $queryParameter,
             function ($value) {
                 return new RegionId($value);
-            }
-        );
-    }
-
-    /**
-     * @param ParameterBagInterface $parameterBag
-     * @return WorkflowStatus[]
-     */
-    private function getWorkflowStatusesFromQuery(ParameterBagInterface $parameterBag)
-    {
-        return $parameterBag->getExplodedStringFromParameter(
-            'workflowStatus',
-            'APPROVED,READY_FOR_VALIDATION',
-            function ($workflowStatus) {
-                return new WorkflowStatus($workflowStatus);
             }
         );
     }
